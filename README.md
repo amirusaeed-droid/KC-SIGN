@@ -1,6 +1,11 @@
-# KC-SIGN Fixed Code Pack
+# KC-SIGN Fixed Version 3
 
-Upload all files and the assets folder to your GitHub repository.
+Fixes included:
+- Signature keeps original ratio and white background.
+- Uploaded JPG/PNG signatures are converted safely before PDF download.
+- Signature/stamp no longer stretches in the PDF.
+- Fields can be dragged from page 1 to page 2 and other pages.
+- Safer download button with error alert.
 
 Required structure:
 
@@ -12,10 +17,4 @@ KC-SIGN/
   - kondey-island.jpg
   - kondey-council-logo.png
 
-Fix included:
-- Download button now has error handling.
-- Download link is created correctly in the browser.
-- Missing stamp/logo image will not stop PDF download.
-- PNG and JPG signature images are supported.
-
-After upload, enable GitHub Pages from main branch / root.
+Upload all files and the full assets folder to GitHub Pages.

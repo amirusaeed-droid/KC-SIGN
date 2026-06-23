@@ -34,19 +34,14 @@ pdfUpload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  try {
-    fileName.textContent = file.name;
-    originalPdfBytes = await file.arrayBuffer();
-    pdfDocProxy = await pdfjsLib.getDocument({ data: originalPdfBytes.slice(0) }).promise;
+  fileName.textContent = file.name;
+  originalPdfBytes = await file.arrayBuffer();
+  pdfDocProxy = await pdfjsLib.getDocument({ data: originalPdfBytes.slice(0) }).promise;
 
-    welcome.classList.add("hidden");
-    await renderAllPages();
+  welcome.classList.add("hidden");
+  await renderAllPages();
 
-    [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload].forEach(btn => btn.disabled = false);
-  } catch (error) {
-    console.error("PDF upload error:", error);
-    alert("PDF could not be opened. Please try another PDF file.");
-  }
+  [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload].forEach(btn => btn.disabled = false);
 });
 
 async function renderAllPages() {
@@ -113,7 +108,10 @@ function addField(type, value, width = 190, height = 70) {
   field.style.width = width + "px";
   field.style.height = height + "px";
 
-  if (type === "signature" || type === "stamp") {
+  if (type === "signature") {
+    field.dataset.image = value;
+    field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
+  } else if (type === "stamp") {
     field.dataset.image = value;
     field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
   } else {
@@ -142,26 +140,52 @@ function makeFieldInteractive(field) {
 
 function startDrag(e) {
   if (e.target.classList.contains("resize") || e.target.classList.contains("remove")) return;
+  e.preventDefault();
 
   const field = e.currentTarget;
-  const parent = field.parentElement;
   const startX = e.clientX;
   const startY = e.clientY;
-  const startLeft = parseFloat(field.style.left);
-  const startTop = parseFloat(field.style.top);
+  const rect = field.getBoundingClientRect();
+  const shiftX = startX - rect.left;
+  const shiftY = startY - rect.top;
+
+  field.classList.add("selected");
+  field.style.zIndex = "1000";
 
   function move(ev) {
-    let left = startLeft + ev.clientX - startX;
-    let top = startTop + ev.clientY - startY;
+    const pages = Array.from(document.querySelectorAll(".pageWrap"));
+    let targetPage = null;
 
-    left = Math.max(0, Math.min(left, parent.clientWidth - field.clientWidth));
-    top = Math.max(0, Math.min(top, parent.clientHeight - field.clientHeight));
+    // Pick the page under the mouse. This allows dragging from page 1 to page 2.
+    for (const page of pages) {
+      const r = page.getBoundingClientRect();
+      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+        targetPage = page;
+        break;
+      }
+    }
+
+    if (!targetPage) {
+      targetPage = field.parentElement;
+    }
+
+    if (field.parentElement !== targetPage) {
+      targetPage.appendChild(field);
+    }
+
+    const pageRect = targetPage.getBoundingClientRect();
+    let left = ev.clientX - pageRect.left - shiftX;
+    let top = ev.clientY - pageRect.top - shiftY;
+
+    left = Math.max(0, Math.min(left, targetPage.clientWidth - field.clientWidth));
+    top = Math.max(0, Math.min(top, targetPage.clientHeight - field.clientHeight));
 
     field.style.left = left + "px";
     field.style.top = top + "px";
   }
 
   function up() {
+    field.style.zIndex = "";
     document.removeEventListener("mousemove", move);
     document.removeEventListener("mouseup", up);
   }
@@ -260,26 +284,7 @@ saveSignature.addEventListener("click", async () => {
   }
 
   signatureModal.classList.add("hidden");
-
-  // Keep uploaded/drawn signature in its original proportion.
-  // This prevents the signature from being squeezed or stretched.
-  let signatureWidth = 280;
-  let signatureHeight = 110;
-  try {
-    const size = await getImageNaturalSize(currentSignatureDataUrl);
-    const ratio = size.width / size.height;
-    signatureHeight = Math.round(signatureWidth / ratio);
-
-    if (signatureHeight < 55) signatureHeight = 55;
-    if (signatureHeight > 140) {
-      signatureHeight = 140;
-      signatureWidth = Math.round(signatureHeight * ratio);
-    }
-  } catch (e) {
-    console.warn("Could not read signature size", e);
-  }
-
-  addField("signature", currentSignatureDataUrl, signatureWidth, signatureHeight);
+  addField("signature", currentSignatureDataUrl, 320, 125);
 });
 
 function makeTypedSignatureImage(text) {
@@ -299,42 +304,62 @@ function makeTypedSignatureImage(text) {
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // Convert uploaded JPG/PNG signature to PNG with a solid white background.
+        // This keeps the uploaded signature looking like the original photo.
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth || img.width;
+        c.height = img.naturalHeight || img.height;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-function getImageNaturalSize(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
-    img.onerror = reject;
-    img.src = src;
-  });
-}
+async function embedAnyImage(pdfDoc, imageData) {
+  if (!imageData) throw new Error("Missing image data");
 
-function drawImageKeepOriginalLook(page, img, box) {
-  // White background keeps uploaded signature photos looking like the original.
-  page.drawRectangle({
-    x: box.x,
-    y: box.y,
-    width: box.w,
-    height: box.h,
-    color: PDFLib.rgb(1, 1, 1)
-  });
-
-  const ratio = img.width / img.height;
-  let drawW = box.w;
-  let drawH = drawW / ratio;
-
-  if (drawH > box.h) {
-    drawH = box.h;
-    drawW = drawH * ratio;
+  // Data URLs made by the tool are PNG. Uploaded JPG files are converted to PNG in fileToDataUrl().
+  if (typeof imageData === "string" && imageData.startsWith("data:image/")) {
+    if (imageData.startsWith("data:image/jpeg") || imageData.startsWith("data:image/jpg")) {
+      return await pdfDoc.embedJpg(imageData);
+    }
+    return await pdfDoc.embedPng(imageData);
   }
 
-  const drawX = box.x + (box.w - drawW) / 2;
-  const drawY = box.y + (box.h - drawH) / 2;
+  const res = await fetch(imageData);
+  if (!res.ok) throw new Error("Image not found: " + imageData);
+  const bytes = await res.arrayBuffer();
+  const lower = imageData.toLowerCase();
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+    return await pdfDoc.embedJpg(bytes);
+  }
+  return await pdfDoc.embedPng(bytes);
+}
+
+function drawImageKeepRatio(page, img, x, y, boxW, boxH) {
+  const ratio = img.width / img.height;
+  let drawW = boxW;
+  let drawH = boxW / ratio;
+
+  if (drawH > boxH) {
+    drawH = boxH;
+    drawW = boxH * ratio;
+  }
+
+  // Center image inside the field box and keep original proportions.
+  const drawX = x + (boxW - drawW) / 2;
+  const drawY = y + (boxH - drawH) / 2;
 
   page.drawImage(img, {
     x: drawX,
@@ -344,45 +369,16 @@ function drawImageKeepOriginalLook(page, img, box) {
   });
 }
 
-function dataUrlToBytes(dataUrl) {
-  const base64 = dataUrl.split(",")[1];
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-async function embedImage(pdfDoc, imageSource) {
-  let bytes;
-  let type = "png";
-
-  if (imageSource.startsWith("data:")) {
-    type = imageSource.substring(5, imageSource.indexOf(";"));
-    bytes = dataUrlToBytes(imageSource);
-  } else {
-    const response = await fetch(imageSource);
-    if (!response.ok) throw new Error("Image not found: " + imageSource);
-    bytes = new Uint8Array(await response.arrayBuffer());
-    type = imageSource.toLowerCase().endsWith(".jpg") || imageSource.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
-  }
-
-  if (type.includes("jpeg") || type.includes("jpg")) {
-    return await pdfDoc.embedJpg(bytes);
-  }
-  return await pdfDoc.embedPng(bytes);
-}
-
 btnDownload.addEventListener("click", async () => {
   if (!originalPdfBytes) {
     alert("Please upload a PDF first.");
     return;
   }
 
-  btnDownload.disabled = true;
-  const oldText = btnDownload.textContent;
-  btnDownload.textContent = "Preparing PDF...";
-
   try {
+    btnDownload.disabled = true;
+    btnDownload.textContent = "Preparing PDF...";
+
     const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
     const pages = pdfDoc.getPages();
 
@@ -404,17 +400,8 @@ btnDownload.addEventListener("click", async () => {
       const h = field.clientHeight * scaleY;
 
       if (field.dataset.type === "signature" || field.dataset.type === "stamp") {
-        try {
-          const img = await embedImage(pdfDoc, field.dataset.image);
-
-          if (field.dataset.type === "signature") {
-            drawImageKeepOriginalLook(page, img, { x, y, w, h });
-          } else {
-            page.drawImage(img, { x, y, width: w, height: h });
-          }
-        } catch (imageError) {
-          console.warn("Image skipped:", imageError);
-        }
+        const img = await embedAnyImage(pdfDoc, field.dataset.image);
+        drawImageKeepRatio(page, img, x, y, w, h);
       } else {
         page.drawText(field.dataset.text || "", {
           x,
@@ -438,10 +425,10 @@ btnDownload.addEventListener("click", async () => {
 
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
-    console.error("Download failed:", error);
-    alert("Download failed. Please check that the PDF is valid and try again.");
+    console.error(error);
+    alert("Download failed: " + error.message);
   } finally {
     btnDownload.disabled = false;
-    btnDownload.textContent = oldText;
+    btnDownload.textContent = "⬇ Download Signed PDF";
   }
 });
