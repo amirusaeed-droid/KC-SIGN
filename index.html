@@ -1,30 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>PDF Signature Tool</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KC-SIGN - PDF Signature Tool</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">KC</div>
+      <div>
+        <h1>KC-SIGN</h1>
+        <p>PDF signing tool of Kondey Council</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnDownload" class="primary" disabled>Download Signed PDF</button>
+      <button id="btnReset">New Document</button>
+    </div>
+  </header>
 
-<h2>PDF Signature Tool</h2>
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="card">
+        <h2>1. Upload PDF</h2>
+        <label class="uploadBox">
+          <input type="file" id="pdfUpload" accept="application/pdf">
+          <span>Click to choose PDF</span>
+        </label>
+        <p id="fileName" class="muted">No file selected</p>
+      </section>
 
-<input type="file" id="pdfUpload" accept="application/pdf">
+      <section class="card">
+        <h2>2. Add Field</h2>
+        <button id="btnAddSignature" disabled>✍ Add Signature</button>
+        <button id="btnAddName" disabled>👤 Add Name</button>
+        <button id="btnAddDate" disabled>📅 Add Date</button>
+        <p class="muted">Click a field, drag it, resize it, then download.</p>
+      </section>
 
-<br><br>
+      <section class="card">
+        <h2>Pages</h2>
+        <div id="pageList" class="pageList"></div>
+      </section>
+    </aside>
 
-<canvas id="pdfCanvas"></canvas>
+    <section class="documentArea">
+      <div id="viewer" class="viewer">
+        <div class="emptyState">
+          <h2>Upload a PDF to start</h2>
+          <p>Then add signature, name, and date fields like an e-sign tool.</p>
+        </div>
+      </div>
+    </section>
+  </main>
 
-<h3>Draw Signature</h3>
-<canvas id="signatureCanvas"></canvas>
+  <div id="signatureModal" class="modal hidden">
+    <div class="modalBox">
+      <div class="modalHead">
+        <h2>Create Signature</h2>
+        <button id="closeModal">×</button>
+      </div>
 
-<br>
+      <div class="tabs">
+        <button class="tab active" data-tab="draw">Draw</button>
+        <button class="tab" data-tab="type">Type</button>
+        <button class="tab" data-tab="upload">Upload</button>
+      </div>
 
-<button onclick="clearSignature()">Clear Signature</button>
-<button onclick="downloadSignedPDF()">Download Signed PDF</button>
+      <div class="tabPanel" id="drawPanel">
+        <canvas id="sigCanvas" width="520" height="180"></canvas>
+        <button id="clearSig">Clear</button>
+      </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-<script src="script.js"></script>
+      <div class="tabPanel hidden" id="typePanel">
+        <input id="typedSignature" placeholder="Type your name" />
+        <div id="typedPreview">Your Signature</div>
+      </div>
 
+      <div class="tabPanel hidden" id="uploadPanel">
+        <input type="file" id="sigUpload" accept="image/png,image/jpeg"/>
+        <p class="muted">Upload PNG/JPG signature image.</p>
+      </div>
+
+      <div class="modalActions">
+        <button id="saveSignature" class="primary">Use Signature</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
