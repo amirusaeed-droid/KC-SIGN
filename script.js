@@ -260,7 +260,26 @@ saveSignature.addEventListener("click", async () => {
   }
 
   signatureModal.classList.add("hidden");
-  addField("signature", currentSignatureDataUrl, 220, 82);
+
+  // Keep uploaded/drawn signature in its original proportion.
+  // This prevents the signature from being squeezed or stretched.
+  let signatureWidth = 280;
+  let signatureHeight = 110;
+  try {
+    const size = await getImageNaturalSize(currentSignatureDataUrl);
+    const ratio = size.width / size.height;
+    signatureHeight = Math.round(signatureWidth / ratio);
+
+    if (signatureHeight < 55) signatureHeight = 55;
+    if (signatureHeight > 140) {
+      signatureHeight = 140;
+      signatureWidth = Math.round(signatureHeight * ratio);
+    }
+  } catch (e) {
+    console.warn("Could not read signature size", e);
+  }
+
+  addField("signature", currentSignatureDataUrl, signatureWidth, signatureHeight);
 });
 
 function makeTypedSignatureImage(text) {
@@ -283,6 +302,45 @@ function fileToDataUrl(file) {
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
+  });
+}
+
+function getImageNaturalSize(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function drawImageKeepOriginalLook(page, img, box) {
+  // White background keeps uploaded signature photos looking like the original.
+  page.drawRectangle({
+    x: box.x,
+    y: box.y,
+    width: box.w,
+    height: box.h,
+    color: PDFLib.rgb(1, 1, 1)
+  });
+
+  const ratio = img.width / img.height;
+  let drawW = box.w;
+  let drawH = drawW / ratio;
+
+  if (drawH > box.h) {
+    drawH = box.h;
+    drawW = drawH * ratio;
+  }
+
+  const drawX = box.x + (box.w - drawW) / 2;
+  const drawY = box.y + (box.h - drawH) / 2;
+
+  page.drawImage(img, {
+    x: drawX,
+    y: drawY,
+    width: drawW,
+    height: drawH
   });
 }
 
@@ -348,7 +406,12 @@ btnDownload.addEventListener("click", async () => {
       if (field.dataset.type === "signature" || field.dataset.type === "stamp") {
         try {
           const img = await embedImage(pdfDoc, field.dataset.image);
-          page.drawImage(img, { x, y, width: w, height: h });
+
+          if (field.dataset.type === "signature") {
+            drawImageKeepOriginalLook(page, img, { x, y, w, h });
+          } else {
+            page.drawImage(img, { x, y, width: w, height: h });
+          }
         } catch (imageError) {
           console.warn("Image skipped:", imageError);
         }
