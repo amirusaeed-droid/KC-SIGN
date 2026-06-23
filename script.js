@@ -34,14 +34,19 @@ pdfUpload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  fileName.textContent = file.name;
-  originalPdfBytes = await file.arrayBuffer();
-  pdfDocProxy = await pdfjsLib.getDocument({ data: originalPdfBytes.slice(0) }).promise;
+  try {
+    fileName.textContent = file.name;
+    originalPdfBytes = await file.arrayBuffer();
+    pdfDocProxy = await pdfjsLib.getDocument({ data: originalPdfBytes.slice(0) }).promise;
 
-  welcome.classList.add("hidden");
-  await renderAllPages();
+    welcome.classList.add("hidden");
+    await renderAllPages();
 
-  [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload].forEach(btn => btn.disabled = false);
+    [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload].forEach(btn => btn.disabled = false);
+  } catch (error) {
+    console.error("PDF upload error:", error);
+    alert("PDF could not be opened. Please try another PDF file.");
+  }
 });
 
 async function renderAllPages() {
@@ -108,10 +113,7 @@ function addField(type, value, width = 190, height = 70) {
   field.style.width = width + "px";
   field.style.height = height + "px";
 
-  if (type === "signature") {
-    field.dataset.image = value;
-    field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
-  } else if (type === "stamp") {
+  if (type === "signature" || type === "stamp") {
     field.dataset.image = value;
     field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
   } else {
@@ -276,54 +278,107 @@ function makeTypedSignatureImage(text) {
 }
 
 function fileToDataUrl(file) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
 
-btnDownload.addEventListener("click", async () => {
-  const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
-  const pages = pdfDoc.getPages();
+function dataUrlToBytes(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
 
-  for (const field of document.querySelectorAll(".field")) {
-    const pageIndex = Number(field.parentElement.dataset.page) - 1;
-    const page = pages[pageIndex];
+async function embedImage(pdfDoc, imageSource) {
+  let bytes;
+  let type = "png";
 
-    const pdfW = page.getWidth();
-    const pdfH = page.getHeight();
-    const pageWrap = field.parentElement;
-
-    const scaleX = pdfW / pageWrap.clientWidth;
-    const scaleY = pdfH / pageWrap.clientHeight;
-
-    const x = parseFloat(field.style.left) * scaleX;
-    const y = pdfH - (parseFloat(field.style.top) + field.clientHeight) * scaleY;
-    const w = field.clientWidth * scaleX;
-    const h = field.clientHeight * scaleY;
-
-    if (field.dataset.type === "signature") {
-      const img = await pdfDoc.embedPng(field.dataset.image);
-      page.drawImage(img, { x, y, width: w, height: h });
-    } else if (field.dataset.type === "stamp") {
-      const imgBytes = await fetch(field.dataset.image).then(res => res.arrayBuffer());
-      const img = await pdfDoc.embedPng(imgBytes);
-      page.drawImage(img, { x, y, width: w, height: h });
-    } else {
-      page.drawText(field.dataset.text, {
-        x,
-        y: y + h * 0.25,
-        size: Math.min(18, h * 0.55),
-        color: PDFLib.rgb(0, 0, 0)
-      });
-    }
+  if (imageSource.startsWith("data:")) {
+    type = imageSource.substring(5, imageSource.indexOf(";"));
+    bytes = dataUrlToBytes(imageSource);
+  } else {
+    const response = await fetch(imageSource);
+    if (!response.ok) throw new Error("Image not found: " + imageSource);
+    bytes = new Uint8Array(await response.arrayBuffer());
+    type = imageSource.toLowerCase().endsWith(".jpg") || imageSource.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
   }
 
-  const bytes = await pdfDoc.save();
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "KC-SIGN-signed.pdf";
-  link.click();
+  if (type.includes("jpeg") || type.includes("jpg")) {
+    return await pdfDoc.embedJpg(bytes);
+  }
+  return await pdfDoc.embedPng(bytes);
+}
+
+btnDownload.addEventListener("click", async () => {
+  if (!originalPdfBytes) {
+    alert("Please upload a PDF first.");
+    return;
+  }
+
+  btnDownload.disabled = true;
+  const oldText = btnDownload.textContent;
+  btnDownload.textContent = "Preparing PDF...";
+
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
+    const pages = pdfDoc.getPages();
+
+    for (const field of document.querySelectorAll(".field")) {
+      const pageIndex = Number(field.parentElement.dataset.page) - 1;
+      const page = pages[pageIndex];
+      if (!page) continue;
+
+      const pdfW = page.getWidth();
+      const pdfH = page.getHeight();
+      const pageWrap = field.parentElement;
+
+      const scaleX = pdfW / pageWrap.clientWidth;
+      const scaleY = pdfH / pageWrap.clientHeight;
+
+      const x = parseFloat(field.style.left) * scaleX;
+      const y = pdfH - (parseFloat(field.style.top) + field.clientHeight) * scaleY;
+      const w = field.clientWidth * scaleX;
+      const h = field.clientHeight * scaleY;
+
+      if (field.dataset.type === "signature" || field.dataset.type === "stamp") {
+        try {
+          const img = await embedImage(pdfDoc, field.dataset.image);
+          page.drawImage(img, { x, y, width: w, height: h });
+        } catch (imageError) {
+          console.warn("Image skipped:", imageError);
+        }
+      } else {
+        page.drawText(field.dataset.text || "", {
+          x,
+          y: y + h * 0.25,
+          size: Math.min(18, h * 0.55),
+          color: PDFLib.rgb(0, 0, 0)
+        });
+      }
+    }
+
+    const bytes = await pdfDoc.save();
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "KC-SIGN-signed.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    console.error("Download failed:", error);
+    alert("Download failed. Please check that the PDF is valid and try again.");
+  } finally {
+    btnDownload.disabled = false;
+    btnDownload.textContent = oldText;
+  }
 });
