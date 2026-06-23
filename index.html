@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PDF Signature Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>PDF Signature Tool</h2>
+
+<input type="file" id="pdfUpload" accept="application/pdf">
+
+<br><br>
+
+<canvas id="pdfCanvas"></canvas>
+
+<h3>Draw Signature</h3>
+<canvas id="signatureCanvas"></canvas>
+
+<br>
+
+<button onclick="clearSignature()">Clear Signature</button>
+<button onclick="downloadSignedPDF()">Download Signed PDF</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
