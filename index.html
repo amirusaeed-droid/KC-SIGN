@@ -2,63 +2,132 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>KC-SIGN - PDF Signature Tool</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KC-SIGN | Kondey Council PDF Signature Tool</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
+  <div class="page-bg"></div>
+  <div class="page-overlay"></div>
+
+  <header class="header">
     <div class="brand">
-      <div class="logo">KC</div>
+      <img src="assets/kondey-council-logo.png" alt="Kondey Council Logo" class="brand-logo" />
       <div>
-        <h1>KC-SIGN</h1>
-        <p>PDF signing tool of Kondey Council</p>
+        <h1>KONDEY COUNCIL</h1>
+        <p><strong>KC-SIGN</strong> · Official PDF Signature Tool</p>
       </div>
     </div>
-    <div class="actions">
-      <button id="btnDownload" class="primary" disabled>Download Signed PDF</button>
-      <button id="btnReset">New Document</button>
+
+    <div class="header-actions">
+      <button class="pill" id="btnTutorial">▣ Tutorial</button>
+      <button class="pill" id="btnTheme">☀ Light</button>
+      <button class="pill">🇬🇧 English</button>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="sidebar">
-      <section class="card">
-        <h2>1. Upload PDF</h2>
-        <label class="uploadBox">
-          <input type="file" id="pdfUpload" accept="application/pdf">
-          <span>Click to choose PDF</span>
+  <main class="app-shell">
+    <aside class="sidebar glass">
+      <section class="step-box">
+        <div class="step-title">
+          <span class="step-number blue">1</span>
+          <div>
+            <h2>Upload PDF</h2>
+            <p>Select your PDF document</p>
+          </div>
+        </div>
+
+        <label class="upload-box">
+          <input type="file" id="pdfUpload" accept="application/pdf" />
+          <span class="upload-icon">☁</span>
+          <strong>Click to upload</strong>
+          <small>or drag and drop</small>
         </label>
-        <p id="fileName" class="muted">No file selected</p>
+
+        <div class="file-card">
+          <span>📄</span>
+          <p id="fileName">No file selected</p>
+        </div>
       </section>
 
-      <section class="card">
-        <h2>2. Add Field</h2>
-        <button id="btnAddSignature" disabled>✍ Add Signature</button>
-        <button id="btnAddName" disabled>👤 Add Name</button>
-        <button id="btnAddDate" disabled>📅 Add Date</button>
-        <p class="muted">Click a field, drag it, resize it, then download.</p>
+      <section class="step-box">
+        <div class="step-title">
+          <span class="step-number purple">2</span>
+          <div>
+            <h2>Add Fields</h2>
+            <p>Click on the page to add fields</p>
+          </div>
+        </div>
+
+        <button class="tool-btn signature" id="btnAddSignature" disabled>✍ Signature</button>
+        <button class="tool-btn name" id="btnAddName" disabled>👤 Name</button>
+        <button class="tool-btn date" id="btnAddDate" disabled>📅 Date</button>
+        <button class="tool-btn text" id="btnAddText" disabled>🔤 Text</button>
+        <button class="tool-btn stamp" id="btnAddStamp" disabled>🏛 Council Seal</button>
       </section>
 
-      <section class="card">
-        <h2>Pages</h2>
-        <div id="pageList" class="pageList"></div>
+      <section class="step-box">
+        <div class="step-title">
+          <span class="step-number green">3</span>
+          <div>
+            <h2>Finalize</h2>
+            <p>Download your signed PDF</p>
+          </div>
+        </div>
+
+        <button class="download-btn" id="btnDownload" disabled>⬇ Download Signed PDF</button>
+
+        <div class="secure-note">
+          <span>🛡</span>
+          <div>
+            <strong>Your documents are secure</strong>
+            <p>Files are processed in your browser. We do not store your files.</p>
+          </div>
+        </div>
       </section>
     </aside>
 
-    <section class="documentArea">
-      <div id="viewer" class="viewer">
-        <div class="emptyState">
-          <h2>Upload a PDF to start</h2>
-          <p>Then add signature, name, and date fields like an e-sign tool.</p>
+    <section class="workspace glass">
+      <div id="welcome" class="welcome">
+        <h2>KC-SIGN</h2>
+        <h3>Sign PDFs quickly and securely</h3>
+        <div class="gradient-line"></div>
+
+        <div class="feature-row">
+          <div class="feature-card">
+            <span class="feature-icon secure">🛡</span>
+            <strong>Secure</strong>
+            <p>Your privacy is our priority</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon fast">⚡</span>
+            <strong>Fast</strong>
+            <p>Sign in just a few clicks</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon easy">✓</span>
+            <strong>Easy</strong>
+            <p>Simple and user friendly</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon reliable">📄</span>
+            <strong>Reliable</strong>
+            <p>High quality output</p>
+          </div>
         </div>
+
+        <div class="footer-chip">🛡 Kondey Council · Empowering Communities, Building Futures</div>
       </div>
+
+      <div id="viewer" class="viewer"></div>
     </section>
   </main>
 
+  <button class="help-btn">🎧 Help</button>
+
   <div id="signatureModal" class="modal hidden">
-    <div class="modalBox">
-      <div class="modalHead">
+    <div class="modal-box">
+      <div class="modal-head">
         <h2>Create Signature</h2>
         <button id="closeModal">×</button>
       </div>
@@ -69,24 +138,26 @@
         <button class="tab" data-tab="upload">Upload</button>
       </div>
 
-      <div class="tabPanel" id="drawPanel">
-        <canvas id="sigCanvas" width="520" height="180"></canvas>
-        <button id="clearSig">Clear</button>
+      <div class="tab-panel" id="drawPanel">
+        <canvas id="sigCanvas" width="620" height="210"></canvas>
+        <button class="clear-btn" id="clearSig">Clear Signature</button>
       </div>
 
-      <div class="tabPanel hidden" id="typePanel">
+      <div class="tab-panel hidden" id="typePanel">
         <input id="typedSignature" placeholder="Type your name" />
         <div id="typedPreview">Your Signature</div>
       </div>
 
-      <div class="tabPanel hidden" id="uploadPanel">
-        <input type="file" id="sigUpload" accept="image/png,image/jpeg"/>
-        <p class="muted">Upload PNG/JPG signature image.</p>
+      <div class="tab-panel hidden" id="uploadPanel">
+        <label class="upload-box small-upload">
+          <input type="file" id="sigUpload" accept="image/png,image/jpeg" />
+          <span class="upload-icon">🖼</span>
+          <strong>Upload Signature Image</strong>
+          <small>PNG or JPG</small>
+        </label>
       </div>
 
-      <div class="modalActions">
-        <button id="saveSignature" class="primary">Use Signature</button>
-      </div>
+      <button id="saveSignature" class="download-btn full">Use Signature</button>
     </div>
   </div>
 
