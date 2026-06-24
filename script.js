@@ -5,6 +5,7 @@ let originalPdfBytes = null;
 let pdfDocProxy = null;
 let currentSignatureDataUrl = null;
 let pdfScale = 1.35;
+let zoomLevel = 1;
 let fieldId = 1;
 
 const viewer = document.getElementById("viewer");
@@ -25,6 +26,8 @@ const viewerToolbar = document.getElementById("viewerToolbar");
 const pageIndicator = document.getElementById("pageIndicator");
 const btnPrevPage = document.getElementById("btnPrevPage");
 const btnNextPage = document.getElementById("btnNextPage");
+const btnZoomIn = document.getElementById("btnZoomIn");
+const btnZoomOut = document.getElementById("btnZoomOut");
 const tutorialModal = document.getElementById("tutorialModal");
 const closeTutorial = document.getElementById("closeTutorial");
 const sealModal = document.getElementById("sealModal");
@@ -69,8 +72,8 @@ async function renderAllPages() {
   const toolbarHeight = viewerToolbar && !viewerToolbar.classList.contains("hidden") ? viewerToolbar.offsetHeight : 0;
   const availableWidth = Math.max(300, (workspace?.clientWidth || window.innerWidth) - 140);
   const availableHeight = Math.max(460, (workspace?.clientHeight || window.innerHeight) - toolbarHeight - 150);
-  pdfScale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
-  pdfScale = Math.max(0.55, Math.min(pdfScale, 1.65));
+  const fitScale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
+  pdfScale = Math.max(0.45, Math.min(fitScale * zoomLevel, 2.4));
 
   for (let i = 1; i <= pdfDocProxy.numPages; i++) {
     const page = i === 1 ? firstPage : await pdfDocProxy.getPage(i);
@@ -566,6 +569,23 @@ btnDownload.addEventListener("click", async () => {
   }
 });
 
+if (btnZoomIn) {
+  btnZoomIn.addEventListener("click", async () => {
+    if (!pdfDocProxy) return;
+    zoomLevel = Math.min(2.5, zoomLevel + 0.15);
+    await renderAllPages();
+    updatePageIndicator();
+  });
+}
+
+if (btnZoomOut) {
+  btnZoomOut.addEventListener("click", async () => {
+    if (!pdfDocProxy) return;
+    zoomLevel = Math.max(0.55, zoomLevel - 0.15);
+    await renderAllPages();
+    updatePageIndicator();
+  });
+}
 
 window.addEventListener("resize", async () => {
   if (!pdfDocProxy) return;
