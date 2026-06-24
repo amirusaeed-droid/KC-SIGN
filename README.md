@@ -31,3 +31,9 @@ Latest changes in V5:
 - Removed the uploaded file name card under Upload PDF.
 - Adjusted PDF viewer spacing so side and bottom measurements align.
 - Footer now shows only “Created By Amir Saeed” with Facebook, X/Twitter, and LinkedIn links.
+
+## V6 mobile sidebar update
+- Improved phone layout.
+- Compact Add Fields buttons.
+- Duplicate Selected button is now clearly visible on mobile.
+- PDF zoom controls remain visible.
