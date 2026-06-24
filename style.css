@@ -265,11 +265,14 @@ body {
 }
 
 .workspace {
-  min-height: 820px;
+  height: calc(100vh - 178px);
+  min-height: 680px;
   border-radius: 26px;
   position: relative;
-  overflow: auto;
-  padding: 44px;
+  overflow: hidden;
+  padding: 28px 32px 32px;
+  display: flex;
+  flex-direction: column;
 }
 
 .welcome {
@@ -363,14 +366,22 @@ body {
 }
 
 .viewer {
-  max-width: 940px;
+  width: 100%;
+  max-width: 980px;
   margin: 0 auto;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 18px 18px 34px;
+  border-radius: 18px;
+  background: rgba(241, 245, 249, .56);
+  scroll-behavior: smooth;
 }
 
 .pageWrap {
   position: relative;
   background: white;
-  margin: 0 auto 28px;
+  margin: 0 auto 48px;
   box-shadow: 0 20px 45px rgba(0, 28, 58, .28);
   border-radius: 8px;
   overflow: hidden;
@@ -607,7 +618,8 @@ body.dark .feature-card p {
   justify-content: center;
   gap: 12px;
   padding: 12px;
-  margin: -22px auto 22px;
+  margin: 0 auto 14px;
+  flex: 0 0 auto;
   width: fit-content;
   max-width: 100%;
   border-radius: 999px;
@@ -633,6 +645,7 @@ body.dark .feature-card p {
 
 .viewer {
   scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
 }
 
 .pageWrap {
@@ -808,10 +821,11 @@ body.dark .feature-card p {
   }
 
   .workspace {
-    min-height: 70vh;
-    padding: 14px;
+    height: calc(100vh - 270px);
+    min-height: 560px;
+    padding: 12px;
     border-radius: 20px;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .welcome h2 {
@@ -858,6 +872,8 @@ body.dark .feature-card p {
 
   .viewer {
     max-width: 100%;
+    padding: 12px 10px 26px;
+    border-radius: 16px;
   }
 
   .pageWrap {

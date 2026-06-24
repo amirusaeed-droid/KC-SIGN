@@ -51,18 +51,29 @@ pdfUpload.addEventListener("change", async (e) => {
   pdfDocProxy = await pdfjsLib.getDocument({ data: originalPdfBytes.slice(0) }).promise;
 
   welcome.classList.add("hidden");
+  viewerToolbar.classList.remove("hidden");
   await renderAllPages();
 
   [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload, btnDuplicateField].forEach(btn => btn.disabled = false);
-  viewerToolbar.classList.remove("hidden");
   updatePageIndicator();
 });
 
 async function renderAllPages() {
   viewer.innerHTML = "";
 
+  // Make the PDF viewer behave like a real document viewer:
+  // only one page fits in the visible area, and the remaining pages are reached by mouse/touch scrolling.
+  const firstPage = await pdfDocProxy.getPage(1);
+  const baseViewport = firstPage.getViewport({ scale: 1 });
+  const workspace = document.querySelector(".workspace");
+  const toolbarHeight = viewerToolbar && !viewerToolbar.classList.contains("hidden") ? viewerToolbar.offsetHeight : 0;
+  const availableWidth = Math.max(300, (workspace?.clientWidth || window.innerWidth) - 90);
+  const availableHeight = Math.max(460, (workspace?.clientHeight || window.innerHeight) - toolbarHeight - 92);
+  pdfScale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
+  pdfScale = Math.max(0.55, Math.min(pdfScale, 1.65));
+
   for (let i = 1; i <= pdfDocProxy.numPages; i++) {
-    const page = await pdfDocProxy.getPage(i);
+    const page = i === 1 ? firstPage : await pdfDocProxy.getPage(i);
     const viewport = page.getViewport({ scale: pdfScale });
 
     const pageWrap = document.createElement("div");
@@ -305,7 +316,8 @@ function createFieldElement(type, value, width = 190, height = 70) {
 function getActivePageWrap() {
   const pages = Array.from(document.querySelectorAll(".pageWrap"));
   if (!pages.length) return null;
-  const mid = window.innerHeight / 2;
+  const viewerRect = viewer.getBoundingClientRect();
+  const mid = viewerRect.top + viewerRect.height / 2;
   return pages.reduce((best, page) => {
     const r = page.getBoundingClientRect();
     const dist = Math.abs((r.top + r.bottom) / 2 - mid);
@@ -331,7 +343,11 @@ function scrollToPage(direction) {
   if (!active) return;
   const current = Number(active.dataset.page);
   const target = document.querySelector(`.pageWrap[data-page="${current + direction}"]`);
-  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (!target) return;
+  const viewerRect = viewer.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const top = viewer.scrollTop + (targetRect.top - viewerRect.top) - 18;
+  viewer.scrollTo({ top, behavior: "smooth" });
 }
 
 /* Signature Modal */
@@ -548,4 +564,11 @@ btnDownload.addEventListener("click", async () => {
     btnDownload.disabled = false;
     btnDownload.textContent = "⬇ Download Signed PDF";
   }
+});
+
+
+window.addEventListener("resize", async () => {
+  if (!pdfDocProxy) return;
+  await renderAllPages();
+  updatePageIndicator();
 });

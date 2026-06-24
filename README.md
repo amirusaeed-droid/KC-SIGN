@@ -23,3 +23,5 @@ KC-SIGN/
 
 Important:
 Upload these updated files to GitHub Pages and keep your existing assets folder with the same image names.
+
+Update note: The PDF area is now a real scroll viewer. It fits one page in the visible area and shows other pages by mouse/touch scrolling.
