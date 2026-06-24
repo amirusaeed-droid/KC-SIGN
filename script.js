@@ -5,6 +5,8 @@ let originalPdfBytes = null;
 let pdfDocProxy = null;
 let currentSignatureDataUrl = null;
 let pdfScale = 1.35;
+let fitScale = 1.35;
+let zoomMultiplier = 1;
 let fieldId = 1;
 
 const viewer = document.getElementById("viewer");
@@ -25,6 +27,10 @@ const viewerToolbar = document.getElementById("viewerToolbar");
 const pageIndicator = document.getElementById("pageIndicator");
 const btnPrevPage = document.getElementById("btnPrevPage");
 const btnNextPage = document.getElementById("btnNextPage");
+const btnZoomIn = document.getElementById("btnZoomIn");
+const btnZoomOut = document.getElementById("btnZoomOut");
+const btnFitWidth = document.getElementById("btnFitWidth");
+const zoomIndicator = document.getElementById("zoomIndicator");
 const tutorialModal = document.getElementById("tutorialModal");
 const closeTutorial = document.getElementById("closeTutorial");
 const sealModal = document.getElementById("sealModal");
@@ -52,25 +58,66 @@ pdfUpload.addEventListener("change", async (e) => {
 
   welcome.classList.add("hidden");
   viewerToolbar.classList.remove("hidden");
-  await renderAllPages();
+  zoomMultiplier = 1;
+  await renderAllPages(false);
 
   [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload, btnDuplicateField].forEach(btn => btn.disabled = false);
   updatePageIndicator();
 });
 
-async function renderAllPages() {
+function snapshotFields() {
+  return Array.from(document.querySelectorAll(".field")).map(field => {
+    const pageWrap = field.parentElement;
+    return {
+      page: Number(pageWrap.dataset.page),
+      type: field.dataset.type,
+      value: (field.dataset.type === "signature" || field.dataset.type === "stamp") ? field.dataset.image : field.dataset.text,
+      leftRatio: parseFloat(field.style.left) / pageWrap.clientWidth,
+      topRatio: parseFloat(field.style.top) / pageWrap.clientHeight,
+      widthRatio: field.clientWidth / pageWrap.clientWidth,
+      heightRatio: field.clientHeight / pageWrap.clientHeight,
+      selected: field.classList.contains("selected")
+    };
+  });
+}
+
+function restoreFields(items) {
+  items.forEach(item => {
+    const pageWrap = document.querySelector(`.pageWrap[data-page="${item.page}"]`);
+    if (!pageWrap) return;
+    const field = createFieldElement(
+      item.type,
+      item.value,
+      Math.max(70, item.widthRatio * pageWrap.clientWidth),
+      Math.max(35, item.heightRatio * pageWrap.clientHeight)
+    );
+    field.style.left = (item.leftRatio * pageWrap.clientWidth) + "px";
+    field.style.top = (item.topRatio * pageWrap.clientHeight) + "px";
+    pageWrap.appendChild(field);
+    if (item.selected) selectField(field);
+  });
+}
+
+function updateZoomIndicator() {
+  if (!zoomIndicator) return;
+  zoomIndicator.textContent = Math.round(zoomMultiplier * 100) + "%";
+}
+
+async function renderAllPages(preserveFields = true) {
+  const savedFields = preserveFields ? snapshotFields() : [];
   viewer.innerHTML = "";
 
-  // Make the PDF viewer behave like a real document viewer:
-  // only one page fits in the visible area, and the remaining pages are reached by mouse/touch scrolling.
   const firstPage = await pdfDocProxy.getPage(1);
   const baseViewport = firstPage.getViewport({ scale: 1 });
   const workspace = document.querySelector(".workspace");
   const toolbarHeight = viewerToolbar && !viewerToolbar.classList.contains("hidden") ? viewerToolbar.offsetHeight : 0;
-  const availableWidth = Math.max(300, (workspace?.clientWidth || window.innerWidth) - 90);
-  const availableHeight = Math.max(460, (workspace?.clientHeight || window.innerHeight) - toolbarHeight - 92);
-  pdfScale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
-  pdfScale = Math.max(0.55, Math.min(pdfScale, 1.65));
+  const availableWidth = Math.max(300, (workspace?.clientWidth || window.innerWidth) - 96);
+  const availableHeight = Math.max(460, (workspace?.clientHeight || window.innerHeight) - toolbarHeight - 98);
+
+  // Base fit keeps the sidebar and PDF viewer balanced. Zoom only changes PDF pages, not the sidebar.
+  fitScale = Math.min(availableWidth / baseViewport.width, availableHeight / baseViewport.height);
+  fitScale = Math.max(0.55, Math.min(fitScale, 1.65));
+  pdfScale = Math.max(0.35, Math.min(fitScale * zoomMultiplier, 3));
 
   for (let i = 1; i <= pdfDocProxy.numPages; i++) {
     const page = i === 1 ? firstPage : await pdfDocProxy.getPage(i);
@@ -92,6 +139,9 @@ async function renderAllPages() {
     pageWrap.appendChild(canvas);
     viewer.appendChild(pageWrap);
   }
+
+  restoreFields(savedFields);
+  updateZoomIndicator();
 }
 
 btnAddSignature.addEventListener("click", () => signatureModal.classList.remove("hidden"));
@@ -338,6 +388,24 @@ window.addEventListener("scroll", updatePageIndicator);
 btnPrevPage.addEventListener("click", () => scrollToPage(-1));
 btnNextPage.addEventListener("click", () => scrollToPage(1));
 
+btnZoomIn.addEventListener("click", async () => {
+  zoomMultiplier = Math.min(2.4, zoomMultiplier + 0.15);
+  await renderAllPages(true);
+  updatePageIndicator();
+});
+
+btnZoomOut.addEventListener("click", async () => {
+  zoomMultiplier = Math.max(0.45, zoomMultiplier - 0.15);
+  await renderAllPages(true);
+  updatePageIndicator();
+});
+
+btnFitWidth.addEventListener("click", async () => {
+  zoomMultiplier = 1;
+  await renderAllPages(true);
+  updatePageIndicator();
+});
+
 function scrollToPage(direction) {
   const active = getActivePageWrap();
   if (!active) return;
@@ -569,6 +637,6 @@ btnDownload.addEventListener("click", async () => {
 
 window.addEventListener("resize", async () => {
   if (!pdfDocProxy) return;
-  await renderAllPages();
+  await renderAllPages(true);
   updatePageIndicator();
 });

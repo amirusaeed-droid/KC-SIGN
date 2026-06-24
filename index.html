@@ -120,10 +120,18 @@
         <div class="footer-chip">🛡 Kondey Council · Empowering Communities, Building Futures</div>
       </div>
 
-      <div class="viewer-toolbar hidden" id="viewerToolbar">
-        <button id="btnPrevPage">↑ Previous</button>
-        <span id="pageIndicator">Page 1 / 1</span>
-        <button id="btnNextPage">Next ↓</button>
+      <div class="viewer-topbar hidden" id="viewerToolbar">
+        <div class="viewer-toolbar">
+          <button id="btnPrevPage">↑ Previous</button>
+          <span id="pageIndicator">Page 1 / 1</span>
+          <button id="btnNextPage">Next ↓</button>
+        </div>
+        <div class="zoom-toolbar" aria-label="PDF zoom controls">
+          <button id="btnZoomOut" title="Zoom out">−</button>
+          <span id="zoomIndicator">100%</span>
+          <button id="btnZoomIn" title="Zoom in">+</button>
+          <button id="btnFitWidth" title="Fit page width">Fit Width</button>
+        </div>
       </div>
       <div id="viewer" class="viewer"></div>
     </section>
@@ -148,7 +156,7 @@
         <p><strong>3. Add Seal:</strong> Upload a seal/stamp image or use the Kondey Council logo as the seal.</p>
         <p><strong>4. Move Fields:</strong> Drag signature, seal, name, date, or text to the correct place. Use the corner dot to resize.</p>
         <p><strong>5. Use More Than Once:</strong> Select a field and press <b>Duplicate Selected</b> to place the same signature or seal again.</p>
-        <p><strong>6. Multi-page PDF:</strong> Scroll down. The document shows one page at a time for easier phone use.</p>
+        <p><strong>6. Multi-page PDF:</strong> Scroll down to view all pages. Use zoom + / − to zoom only the PDF pages.</p>
         <p><strong>7. Download:</strong> Press <b>Download Signed PDF</b> when finished.</p>
         <p class="call-help"><a href="tel:9662499">Need help? Call 9662499</a></p>
       </div>

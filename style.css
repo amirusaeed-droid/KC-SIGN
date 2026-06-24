@@ -927,3 +927,129 @@ body.dark .feature-card p {
     font-size: 13px;
   }
 }
+
+/* Version 5 polish: balanced viewer + zoom controls */
+.viewer-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 6px 0 16px;
+  flex: 0 0 auto;
+}
+
+.viewer-topbar .viewer-toolbar {
+  position: static;
+  margin: 0;
+}
+
+.zoom-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 12px 30px rgba(0,0,0,.14);
+  backdrop-filter: blur(18px);
+}
+
+.zoom-toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #10b981, #00b8d9);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.zoom-toolbar button:first-child,
+.zoom-toolbar button:nth-child(3) {
+  min-width: 40px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+#zoomIndicator {
+  min-width: 54px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.workspace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 70% 8%, rgba(71,120,255,.14), transparent 28%),
+              radial-gradient(circle at 95% 90%, rgba(16,185,129,.16), transparent 34%);
+}
+
+.viewer {
+  max-width: 100%;
+  border: 1px solid rgba(255,255,255,.65);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+.pageWrap {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.pageWrap:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 58px rgba(0, 28, 58, .32);
+}
+
+.field {
+  box-shadow: 0 8px 22px rgba(71,120,255,.18);
+  backdrop-filter: blur(3px);
+}
+
+.tool-btn.signature { border-left: 5px solid #4778ff; }
+.tool-btn.name { border-left: 5px solid #a855f7; }
+.tool-btn.date { border-left: 5px solid #00b8d9; }
+.tool-btn.text { border-left: 5px solid #f97316; }
+.tool-btn.stamp { border-left: 5px solid #10b981; }
+.tool-btn.duplicate { border-left: 5px solid #071b38; }
+
+body.dark .viewer,
+body.dark .viewer-toolbar,
+body.dark .zoom-toolbar,
+body.dark .site-footer {
+  background: rgba(15,23,42,.78);
+  border-color: rgba(148,163,184,.24);
+}
+
+body.dark .viewer-toolbar span,
+body.dark #zoomIndicator {
+  color: #e5f2ff;
+}
+
+@media (max-width: 720px) {
+  .viewer-topbar {
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+
+  .viewer-topbar .viewer-toolbar,
+  .zoom-toolbar {
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .zoom-toolbar {
+    justify-content: space-between;
+  }
+
+  .zoom-toolbar button {
+    padding: 10px 9px;
+    font-size: 12px;
+  }
+}
