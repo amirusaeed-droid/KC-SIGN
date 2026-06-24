@@ -19,6 +19,18 @@ const btnAddText = document.getElementById("btnAddText");
 const btnAddStamp = document.getElementById("btnAddStamp");
 const btnDownload = document.getElementById("btnDownload");
 const btnTheme = document.getElementById("btnTheme");
+const btnTutorial = document.getElementById("btnTutorial");
+const btnDuplicateField = document.getElementById("btnDuplicateField");
+const viewerToolbar = document.getElementById("viewerToolbar");
+const pageIndicator = document.getElementById("pageIndicator");
+const btnPrevPage = document.getElementById("btnPrevPage");
+const btnNextPage = document.getElementById("btnNextPage");
+const tutorialModal = document.getElementById("tutorialModal");
+const closeTutorial = document.getElementById("closeTutorial");
+const sealModal = document.getElementById("sealModal");
+const closeSealModal = document.getElementById("closeSealModal");
+const sealUpload = document.getElementById("sealUpload");
+const saveSeal = document.getElementById("saveSeal");
 
 const signatureModal = document.getElementById("signatureModal");
 const closeModal = document.getElementById("closeModal");
@@ -41,7 +53,9 @@ pdfUpload.addEventListener("change", async (e) => {
   welcome.classList.add("hidden");
   await renderAllPages();
 
-  [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload].forEach(btn => btn.disabled = false);
+  [btnAddSignature, btnAddName, btnAddDate, btnAddText, btnAddStamp, btnDownload, btnDuplicateField].forEach(btn => btn.disabled = false);
+  viewerToolbar.classList.remove("hidden");
+  updatePageIndicator();
 });
 
 async function renderAllPages() {
@@ -86,8 +100,34 @@ btnAddText.addEventListener("click", () => {
   if (text) addField("text", text, 190, 45);
 });
 
-btnAddStamp.addEventListener("click", () => {
-  addField("stamp", "assets/kondey-council-logo.png", 95, 95);
+btnAddStamp.addEventListener("click", () => sealModal.classList.remove("hidden"));
+
+closeSealModal.addEventListener("click", () => sealModal.classList.add("hidden"));
+
+document.querySelectorAll(".seal-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".seal-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".seal-panel").forEach(panel => panel.classList.add("hidden"));
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.sealTab + "Panel").classList.remove("hidden");
+  });
+});
+
+saveSeal.addEventListener("click", async () => {
+  const activeTab = document.querySelector(".seal-tab.active").dataset.sealTab;
+  let sealImage = "assets/kondey-council-logo.png";
+
+  if (activeTab === "uploadSeal") {
+    const file = sealUpload.files[0];
+    if (!file) {
+      alert("Please upload seal image first.");
+      return;
+    }
+    sealImage = await fileToDataUrl(file);
+  }
+
+  sealModal.classList.add("hidden");
+  addField("stamp", sealImage, 115, 115);
 });
 
 btnTheme.addEventListener("click", () => {
@@ -96,36 +136,19 @@ btnTheme.addEventListener("click", () => {
 });
 
 function addField(type, value, width = 190, height = 70) {
-  const pageWrap = document.querySelector(".pageWrap");
+  const pageWrap = getActivePageWrap();
   if (!pageWrap) return;
 
-  const field = document.createElement("div");
-  field.className = "field";
-  field.dataset.id = fieldId++;
-  field.dataset.type = type;
-  field.style.left = "90px";
-  field.style.top = "90px";
-  field.style.width = width + "px";
-  field.style.height = height + "px";
-
-  if (type === "signature") {
-    field.dataset.image = value;
-    field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
-  } else if (type === "stamp") {
-    field.dataset.image = value;
-    field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
-  } else {
-    field.dataset.text = value;
-    field.innerHTML = `<span class="remove">×</span><div class="textField">${value}</div><span class="resize"></span>`;
-  }
-
-  makeFieldInteractive(field);
+  const field = createFieldElement(type, value, width, height);
   pageWrap.appendChild(field);
+  selectField(field);
 }
 
 function makeFieldInteractive(field) {
   field.addEventListener("mousedown", startDrag);
+  field.addEventListener("touchstart", startDrag, { passive: false });
   field.querySelector(".resize").addEventListener("mousedown", startResize);
+  field.querySelector(".resize").addEventListener("touchstart", startResize, { passive: false });
 
   field.querySelector(".remove").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -133,18 +156,27 @@ function makeFieldInteractive(field) {
   });
 
   field.addEventListener("click", () => {
-    document.querySelectorAll(".field").forEach(f => f.classList.remove("selected"));
-    field.classList.add("selected");
+    selectField(field);
   });
+}
+
+function getPoint(e) {
+  return e.touches ? e.touches[0] : e;
+}
+
+function selectField(field) {
+  document.querySelectorAll(".field").forEach(f => f.classList.remove("selected"));
+  field.classList.add("selected");
 }
 
 function startDrag(e) {
   if (e.target.classList.contains("resize") || e.target.classList.contains("remove")) return;
   e.preventDefault();
 
+  const point = getPoint(e);
   const field = e.currentTarget;
-  const startX = e.clientX;
-  const startY = e.clientY;
+  const startX = point.clientX;
+  const startY = point.clientY;
   const rect = field.getBoundingClientRect();
   const shiftX = startX - rect.left;
   const shiftY = startY - rect.top;
@@ -157,9 +189,10 @@ function startDrag(e) {
     let targetPage = null;
 
     // Pick the page under the mouse. This allows dragging from page 1 to page 2.
+    const point = getPoint(ev);
     for (const page of pages) {
       const r = page.getBoundingClientRect();
-      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+      if (point.clientX >= r.left && point.clientX <= r.right && point.clientY >= r.top && point.clientY <= r.bottom) {
         targetPage = page;
         break;
       }
@@ -174,8 +207,8 @@ function startDrag(e) {
     }
 
     const pageRect = targetPage.getBoundingClientRect();
-    let left = ev.clientX - pageRect.left - shiftX;
-    let top = ev.clientY - pageRect.top - shiftY;
+    let left = point.clientX - pageRect.left - shiftX;
+    let top = point.clientY - pageRect.top - shiftY;
 
     left = Math.max(0, Math.min(left, targetPage.clientWidth - field.clientWidth));
     top = Math.max(0, Math.min(top, targetPage.clientHeight - field.clientHeight));
@@ -188,33 +221,117 @@ function startDrag(e) {
     field.style.zIndex = "";
     document.removeEventListener("mousemove", move);
     document.removeEventListener("mouseup", up);
+    document.removeEventListener("touchmove", move);
+    document.removeEventListener("touchend", up);
   }
 
   document.addEventListener("mousemove", move);
   document.addEventListener("mouseup", up);
+  document.addEventListener("touchmove", move, { passive: false });
+  document.addEventListener("touchend", up);
 }
 
 function startResize(e) {
   e.stopPropagation();
+  e.preventDefault();
 
+  const point = getPoint(e);
   const field = e.currentTarget.parentElement;
-  const startX = e.clientX;
-  const startY = e.clientY;
+  const startX = point.clientX;
+  const startY = point.clientY;
   const startW = field.clientWidth;
   const startH = field.clientHeight;
 
   function move(ev) {
-    field.style.width = Math.max(70, startW + ev.clientX - startX) + "px";
-    field.style.height = Math.max(35, startH + ev.clientY - startY) + "px";
+    const point = getPoint(ev);
+    field.style.width = Math.max(70, startW + point.clientX - startX) + "px";
+    field.style.height = Math.max(35, startH + point.clientY - startY) + "px";
   }
 
   function up() {
     document.removeEventListener("mousemove", move);
     document.removeEventListener("mouseup", up);
+    document.removeEventListener("touchmove", move);
+    document.removeEventListener("touchend", up);
   }
 
   document.addEventListener("mousemove", move);
   document.addEventListener("mouseup", up);
+  document.addEventListener("touchmove", move, { passive: false });
+  document.addEventListener("touchend", up);
+}
+
+
+btnTutorial.addEventListener("click", () => tutorialModal.classList.remove("hidden"));
+closeTutorial.addEventListener("click", () => tutorialModal.classList.add("hidden"));
+
+btnDuplicateField.addEventListener("click", () => {
+  const selected = document.querySelector(".field.selected");
+  if (!selected) {
+    alert("Please select a signature, seal, or text field first.");
+    return;
+  }
+  const type = selected.dataset.type;
+  const value = (type === "signature" || type === "stamp") ? selected.dataset.image : selected.dataset.text;
+  const copy = createFieldElement(type, value, selected.clientWidth, selected.clientHeight);
+  copy.style.left = Math.min(parseFloat(selected.style.left) + 24, selected.parentElement.clientWidth - selected.clientWidth) + "px";
+  copy.style.top = Math.min(parseFloat(selected.style.top) + 24, selected.parentElement.clientHeight - selected.clientHeight) + "px";
+  selected.parentElement.appendChild(copy);
+  selectField(copy);
+});
+
+function createFieldElement(type, value, width = 190, height = 70) {
+  const field = document.createElement("div");
+  field.className = "field";
+  field.dataset.id = fieldId++;
+  field.dataset.type = type;
+  field.style.left = "90px";
+  field.style.top = "90px";
+  field.style.width = width + "px";
+  field.style.height = height + "px";
+
+  if (type === "signature" || type === "stamp") {
+    field.dataset.image = value;
+    field.innerHTML = `<span class="remove">×</span><img src="${value}"><span class="resize"></span>`;
+  } else {
+    field.dataset.text = value;
+    field.innerHTML = `<span class="remove">×</span><div class="textField">${value}</div><span class="resize"></span>`;
+  }
+
+  makeFieldInteractive(field);
+  return field;
+}
+
+function getActivePageWrap() {
+  const pages = Array.from(document.querySelectorAll(".pageWrap"));
+  if (!pages.length) return null;
+  const mid = window.innerHeight / 2;
+  return pages.reduce((best, page) => {
+    const r = page.getBoundingClientRect();
+    const dist = Math.abs((r.top + r.bottom) / 2 - mid);
+    return !best || dist < best.dist ? { page, dist } : best;
+  }, null).page;
+}
+
+function updatePageIndicator() {
+  if (!pdfDocProxy || !pageIndicator) return;
+  const active = getActivePageWrap();
+  const current = active ? active.dataset.page : 1;
+  pageIndicator.textContent = `Page ${current} / ${pdfDocProxy.numPages}`;
+}
+
+viewer.addEventListener("scroll", updatePageIndicator);
+window.addEventListener("scroll", updatePageIndicator);
+
+btnPrevPage.addEventListener("click", () => scrollToPage(-1));
+btnNextPage.addEventListener("click", () => scrollToPage(1));
+
+function scrollToPage(direction) {
+  const active = getActivePageWrap();
+  if (!active) return;
+  const current = Number(active.dataset.page);
+  const target = document.querySelector(`.pageWrap[data-page="${current + direction}"]`);
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 /* Signature Modal */

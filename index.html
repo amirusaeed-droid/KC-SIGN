@@ -22,7 +22,7 @@
     <div class="header-actions">
       <button class="pill" id="btnTutorial">▣ Tutorial</button>
       <button class="pill" id="btnTheme">☀ Light</button>
-      <button class="pill">🇬🇧 English</button>
+      <a class="pill help-link" href="tel:9662499">📞 Help</a>
     </div>
   </header>
 
@@ -55,7 +55,7 @@
           <span class="step-number purple">2</span>
           <div>
             <h2>Add Fields</h2>
-            <p>Click on the page to add fields</p>
+            <p>Add, duplicate and drag fields to any page</p>
           </div>
         </div>
 
@@ -63,7 +63,8 @@
         <button class="tool-btn name" id="btnAddName" disabled>👤 Name</button>
         <button class="tool-btn date" id="btnAddDate" disabled>📅 Date</button>
         <button class="tool-btn text" id="btnAddText" disabled>🔤 Text</button>
-        <button class="tool-btn stamp" id="btnAddStamp" disabled>🏛 Council Seal</button>
+        <button class="tool-btn stamp" id="btnAddStamp" disabled>🏛 Seal / Stamp</button>
+        <button class="tool-btn duplicate" id="btnDuplicateField" disabled>⧉ Duplicate Selected</button>
       </section>
 
       <section class="step-box">
@@ -119,11 +120,68 @@
         <div class="footer-chip">🛡 Kondey Council · Empowering Communities, Building Futures</div>
       </div>
 
+      <div class="viewer-toolbar hidden" id="viewerToolbar">
+        <button id="btnPrevPage">↑ Previous</button>
+        <span id="pageIndicator">Page 1 / 1</span>
+        <button id="btnNextPage">Next ↓</button>
+      </div>
       <div id="viewer" class="viewer"></div>
     </section>
   </main>
 
-  <button class="help-btn">🎧 Help</button>
+  <a class="help-btn" href="tel:9662499">🎧 Help</a>
+
+
+  <footer class="site-footer">
+    <strong>Created by Amir Saeed</strong> · All rights reserved
+  </footer>
+
+  <div id="tutorialModal" class="modal hidden">
+    <div class="modal-box tutorial-box">
+      <div class="modal-head">
+        <h2>User Guide / Tutorial</h2>
+        <button id="closeTutorial">×</button>
+      </div>
+      <div class="guide-list">
+        <p><strong>1. Upload PDF:</strong> Select the PDF document from your phone or computer.</p>
+        <p><strong>2. Add Signature:</strong> Draw, type, or upload your signature image. Then press <b>Use Signature</b>.</p>
+        <p><strong>3. Add Seal:</strong> Upload a seal/stamp image or use the Kondey Council logo as the seal.</p>
+        <p><strong>4. Move Fields:</strong> Drag signature, seal, name, date, or text to the correct place. Use the corner dot to resize.</p>
+        <p><strong>5. Use More Than Once:</strong> Select a field and press <b>Duplicate Selected</b> to place the same signature or seal again.</p>
+        <p><strong>6. Multi-page PDF:</strong> Scroll down. The document shows one page at a time for easier phone use.</p>
+        <p><strong>7. Download:</strong> Press <b>Download Signed PDF</b> when finished.</p>
+        <p class="call-help"><a href="tel:9662499">Need help? Call 9662499</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="sealModal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>Add Seal / Stamp</h2>
+        <button id="closeSealModal">×</button>
+      </div>
+      <div class="tabs seal-tabs">
+        <button class="seal-tab active" data-seal-tab="uploadSeal">Upload Seal</button>
+        <button class="seal-tab" data-seal-tab="defaultSeal">Council Logo</button>
+      </div>
+      <div class="seal-panel" id="uploadSealPanel">
+        <label class="upload-box small-upload">
+          <input type="file" id="sealUpload" accept="image/png,image/jpeg" />
+          <span class="upload-icon">🏛</span>
+          <strong>Upload Seal Image</strong>
+          <small>PNG or JPG</small>
+        </label>
+      </div>
+      <div class="seal-panel hidden" id="defaultSealPanel">
+        <div class="default-seal-preview">
+          <img src="assets/kondey-council-logo.png" alt="Kondey Council Seal" />
+          <p>Use Kondey Council Logo as seal</p>
+        </div>
+      </div>
+      <button id="saveSeal" class="download-btn full">Use Seal</button>
+    </div>
+  </div>
 
   <div id="signatureModal" class="modal hidden">
     <div class="modal-box">

@@ -588,3 +588,326 @@ body.dark .feature-card p {
     margin-top: 100px;
   }
 }
+
+/* Version 4 additions */
+.pill.help-link,
+.help-btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewer-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  margin: -22px auto 22px;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 12px 30px rgba(0,0,0,.14);
+  backdrop-filter: blur(18px);
+}
+
+.viewer-toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #4778ff, #00b8d9);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.viewer-toolbar span {
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.viewer {
+  scroll-snap-type: y mandatory;
+}
+
+.pageWrap {
+  scroll-snap-align: center;
+}
+
+.pageWrap::before {
+  content: "Page " attr(data-page);
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 5;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(7,27,56,.78);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.duplicate {
+  background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(226,240,255,.92));
+}
+
+.site-footer {
+  text-align: center;
+  margin: 0 46px 32px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255,255,255,.76);
+  color: var(--navy);
+  font-size: 15px;
+  box-shadow: 0 12px 30px rgba(0, 38, 69, .12);
+  backdrop-filter: blur(18px);
+}
+
+.guide-list p {
+  margin: 0 0 14px;
+  line-height: 1.55;
+  color: #1e293b;
+}
+
+.call-help a {
+  display: block;
+  text-align: center;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981, #00b8d9);
+  color: #fff;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.default-seal-preview {
+  text-align: center;
+  padding: 22px;
+  border-radius: 16px;
+  background: rgba(241,245,249,.9);
+}
+
+.default-seal-preview img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+
+.seal-tabs .seal-tab,
+#closeTutorial,
+#closeSealModal {
+  border: 0;
+  cursor: pointer;
+}
+
+.seal-tab {
+  border: 1px solid #dbe4ef !important;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 900;
+}
+
+.seal-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #4778ff, #a855f7);
+}
+
+#closeTutorial,
+#closeSealModal {
+  background: #f1f5f9;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 28px;
+}
+
+@media (max-width: 720px) {
+  body {
+    background: #eaf5ff;
+  }
+
+  .page-bg,
+  .page-overlay {
+    display: none;
+  }
+
+  .header {
+    padding: 18px 14px 8px;
+    gap: 12px;
+  }
+
+  .brand {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .brand-logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .brand h1 {
+    font-size: 22px;
+    line-height: 1.1;
+  }
+
+  .brand p {
+    font-size: 13px;
+  }
+
+  .header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .pill {
+    min-width: 0;
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .app-shell {
+    padding: 10px 10px 24px;
+    gap: 14px;
+  }
+
+  .sidebar {
+    border-radius: 20px;
+  }
+
+  .step-box {
+    padding: 16px;
+  }
+
+  .step-title h2 {
+    font-size: 18px;
+  }
+
+  .step-title p {
+    font-size: 13px;
+  }
+
+  .upload-box {
+    min-height: 104px;
+  }
+
+  .tool-btn,
+  .download-btn {
+    height: 52px;
+    min-height: 52px;
+    font-size: 15px;
+  }
+
+  .workspace {
+    min-height: 70vh;
+    padding: 14px;
+    border-radius: 20px;
+    overflow-x: auto;
+  }
+
+  .welcome h2 {
+    font-size: 36px;
+  }
+
+  .welcome h3 {
+    font-size: 18px;
+  }
+
+  .feature-row {
+    gap: 12px;
+  }
+
+  .feature-card {
+    width: 44%;
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.62);
+  }
+
+  .feature-icon {
+    width: 54px;
+    height: 54px;
+    font-size: 25px;
+  }
+
+  .viewer-toolbar {
+    width: 100%;
+    margin: 0 0 14px;
+    border-radius: 16px;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .viewer-toolbar button {
+    padding: 10px 9px;
+    font-size: 12px;
+  }
+
+  .viewer-toolbar span {
+    font-size: 13px;
+  }
+
+  .viewer {
+    max-width: 100%;
+  }
+
+  .pageWrap {
+    width: 100% !important;
+    height: auto !important;
+    margin-bottom: 22px;
+  }
+
+  .field {
+    touch-action: none;
+  }
+
+  .help-btn {
+    right: 14px;
+    bottom: 14px;
+    padding: 14px 18px;
+    font-size: 15px;
+  }
+
+  .modal-box {
+    width: 94vw;
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 20px;
+  }
+
+  .tabs,
+  .seal-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+
+  .seal-tabs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tab,
+  .seal-tab {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  #typedPreview {
+    font-size: 42px;
+    padding: 22px 10px;
+  }
+
+  .site-footer {
+    margin: 0 10px 76px;
+    font-size: 13px;
+  }
+}
