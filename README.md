@@ -1,4 +1,4 @@
-# KC-SIGN Updated Version 5
+# KC-SIGN Updated Version 4
 
 Changes included:
 - Better phone/mobile UI with compact header, clearer buttons, and phone-friendly layout.
@@ -27,9 +27,7 @@ Upload these updated files to GitHub Pages and keep your existing assets folder 
 Update note: The PDF area is now a real scroll viewer. It fits one page in the visible area and shows other pages by mouse/touch scrolling.
 
 
-Version 5 extra changes:
-- More attractive glass toolbar design.
-- Added PDF-only zoom in, zoom out, and Fit Width controls.
-- Zoom changes only the page/pages area; the sidebar size stays the same.
-- More polished field borders, shadows, and tool button accents.
-- Multi-page PDFs can show one or more pages depending on zoom and screen size.
+Latest changes in V5:
+- Removed the uploaded file name card under Upload PDF.
+- Adjusted PDF viewer spacing so side and bottom measurements align.
+- Footer now shows only “Created By Amir Saeed” with Facebook, X/Twitter, and LinkedIn links.
