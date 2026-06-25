@@ -119,7 +119,7 @@ async function renderAllPages() {
   }
 }
 
-btnAddSignature.addEventListener("click", () => signatureModal.classList.remove("hidden"));
+btnAddSignature.addEventListener("click", () => { signatureModal.classList.remove("hidden"); setTimeout(prepareSignatureCanvas, 50); });
 closeModal.addEventListener("click", () => signatureModal.classList.add("hidden"));
 
 btnAddName.addEventListener("click", () => {
@@ -199,6 +199,7 @@ function startDrag(e) {
   e.stopPropagation();
 
   const field = e.currentTarget;
+  const originalPage = field.parentElement;
   const startX = e.clientX;
   const startY = e.clientY;
   const rect = field.getBoundingClientRect();
@@ -208,31 +209,37 @@ function startDrag(e) {
   selectField(field);
   field.style.zIndex = "1000";
   field.classList.add("dragging");
+  document.body.classList.add("field-dragging");
+  viewer.classList.add("dragging");
+
+  // On phones, never move the element to another page while dragging.
+  // This prevents the field from disappearing when the browser tries to scroll/cancel touch.
+  const lockToCurrentPage = e.pointerType === "touch" || e.pointerType === "pen";
 
   try {
     field.setPointerCapture(e.pointerId);
   } catch (_) {}
 
-  function move(ev) {
-    ev.preventDefault();
-
+  function getTargetPage(ev) {
+    if (lockToCurrentPage) return originalPage || field.parentElement;
     const pages = Array.from(document.querySelectorAll(".pageWrap"));
-    let targetPage = null;
-
-    // Pick the page under the finger/mouse. If the finger is between pages,
-    // keep the current page so the field never vanishes.
     for (const page of pages) {
       const r = page.getBoundingClientRect();
       if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-        targetPage = page;
-        break;
+        return page;
       }
     }
+    return field.parentElement || originalPage;
+  }
 
-    if (!targetPage) targetPage = field.parentElement;
+  function move(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const targetPage = getTargetPage(ev);
     if (!targetPage) return;
 
-    if (field.parentElement !== targetPage) {
+    if (!lockToCurrentPage && field.parentElement !== targetPage) {
       targetPage.appendChild(field);
     }
 
@@ -253,6 +260,8 @@ function startDrag(e) {
   function up(ev) {
     field.style.zIndex = "";
     field.classList.remove("dragging");
+    document.body.classList.remove("field-dragging");
+    viewer.classList.remove("dragging");
     try {
       field.releasePointerCapture(e.pointerId);
     } catch (_) {}
@@ -269,6 +278,9 @@ function startDrag(e) {
 function startResize(e) {
   e.stopPropagation();
   e.preventDefault();
+
+  document.body.classList.add("field-dragging");
+  viewer.classList.add("dragging");
 
   const field = e.currentTarget.parentElement;
   const startX = e.clientX;
@@ -287,6 +299,8 @@ function startResize(e) {
   }
 
   function up() {
+    document.body.classList.remove("field-dragging");
+    viewer.classList.remove("dragging");
     document.removeEventListener("pointermove", move);
     document.removeEventListener("pointerup", up);
     document.removeEventListener("pointercancel", up);
@@ -380,6 +394,8 @@ let drawing = false;
 
 function startSignatureDraw(e) {
   e.preventDefault();
+  e.stopPropagation();
+  document.body.classList.add("field-dragging");
   drawing = true;
   sigCtx.beginPath();
   try {
@@ -391,6 +407,7 @@ function startSignatureDraw(e) {
 function stopSignatureDraw(e) {
   if (!drawing) return;
   drawing = false;
+  document.body.classList.remove("field-dragging");
   sigCtx.beginPath();
   try {
     sigCanvas.releasePointerCapture(e.pointerId);

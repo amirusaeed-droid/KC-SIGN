@@ -1939,3 +1939,105 @@ body.dark .preview-grid small {
   .optimizer-grid, .preview-grid { grid-template-columns: 1fr; }
   .optimizer-head { align-items: flex-start; flex-direction: column; }
 }
+
+/* E-SOI V7 fixes: stable mobile dragging and full dark-mode modals */
+.field,
+.field * {
+  touch-action: none;
+}
+
+body.field-dragging,
+body.field-dragging * {
+  overscroll-behavior: contain;
+}
+
+body.field-dragging .viewer.dragging {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+
+.field.dragging {
+  opacity: .98;
+  box-shadow: 0 0 0 5px rgba(71,120,255,.18), 0 14px 30px rgba(0,0,0,.18);
+}
+
+#sigCanvas {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+body.dark .modal-box {
+  background: rgba(15, 23, 42, .98) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(148, 163, 184, .35);
+}
+
+body.dark .modal-head h2,
+body.dark .modal-box h2,
+body.dark .modal-box strong,
+body.dark .modal-box label,
+body.dark .modal-box p,
+body.dark .modal-box small,
+body.dark .modal-box span {
+  color: #f8fafc;
+}
+
+body.dark #closeModal,
+body.dark #closeTutorial,
+body.dark #closeSealModal,
+body.dark .modal-head button {
+  background: rgba(30, 41, 59, .95) !important;
+  color: #f8fafc !important;
+}
+
+body.dark .tab,
+body.dark .seal-tab {
+  background: rgba(30, 41, 59, .95) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, .35) !important;
+}
+
+body.dark .tab.active,
+body.dark .seal-tab.active {
+  color: #fff !important;
+  background: linear-gradient(135deg, #4778ff, #a855f7) !important;
+}
+
+body.dark .small-upload,
+body.dark .modal-box .upload-box {
+  background: rgba(2, 6, 23, .62) !important;
+  border-color: rgba(96, 165, 250, .55) !important;
+  color: #f8fafc !important;
+}
+
+body.dark .signature-optimizer {
+  background: rgba(30, 41, 59, .92) !important;
+  border-color: rgba(148, 163, 184, .45) !important;
+}
+
+body.dark .optimizer-head span {
+  background: rgba(59, 130, 246, .95) !important;
+  color: #fff !important;
+}
+
+body.dark .optimizer-grid select,
+body.dark #typedSignature {
+  background: rgba(2, 6, 23, .88) !important;
+  color: #f8fafc !important;
+  border-color: rgba(148, 163, 184, .55) !important;
+}
+
+body.dark .preview-grid div {
+  border-color: rgba(148, 163, 184, .45) !important;
+  background-color: rgba(15, 23, 42, .7) !important;
+}
+
+body.dark #sigCanvas {
+  background: #fff !important;
+  border-color: rgba(148, 163, 184, .55) !important;
+}
+
+body.dark #typedPreview {
+  color: #f8fafc !important;
+}

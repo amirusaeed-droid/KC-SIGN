@@ -33,3 +33,10 @@ For clean signatures:
 - style.css
 - script.js
 - assets/e-soi-logo.png
+
+## V7 Mobile Drag + Dark Mode Fix
+- Fixed dark mode contrast in Signature Optimizer and all modal controls.
+- Improved phone dragging using Pointer Events, pointer capture and scroll lock while dragging.
+- Signature fields are locked to the current page on touch devices to stop disappearing while dragging.
+- Added touch-action protection for fields and draw canvas.
+- Re-prepares high-DPI draw canvas when opening the signature modal.
