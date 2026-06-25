@@ -118,28 +118,14 @@ btnAddStamp.addEventListener("click", () => sealModal.classList.remove("hidden")
 
 closeSealModal.addEventListener("click", () => sealModal.classList.add("hidden"));
 
-document.querySelectorAll(".seal-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".seal-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".seal-panel").forEach(panel => panel.classList.add("hidden"));
-    tab.classList.add("active");
-    document.getElementById(tab.dataset.sealTab + "Panel").classList.remove("hidden");
-  });
-});
-
 saveSeal.addEventListener("click", async () => {
-  const activeTab = document.querySelector(".seal-tab.active").dataset.sealTab;
-  let sealImage = "assets/e-soi-logo.png";
-
-  if (activeTab === "uploadSeal") {
-    const file = sealUpload.files[0];
-    if (!file) {
-      alert("Please upload seal image first.");
-      return;
-    }
-    sealImage = await fileToDataUrl(file);
+  const file = sealUpload.files[0];
+  if (!file) {
+    alert("Please upload custom seal image first.");
+    return;
   }
 
+  const sealImage = await fileToDataUrl(file);
   sealModal.classList.add("hidden");
   addField("stamp", sealImage, 115, 115);
 });
@@ -471,23 +457,13 @@ function makeTypedSignatureImage(text) {
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+
     reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        // Convert uploaded JPG/PNG signature to PNG with a solid white background.
-        // This keeps the uploaded signature looking like the original photo.
-        const c = document.createElement("canvas");
-        c.width = img.naturalWidth || img.width;
-        c.height = img.naturalHeight || img.height;
-        const ctx = c.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, c.width, c.height);
-        ctx.drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL("image/png"));
-      };
-      img.onerror = reject;
-      img.src = reader.result;
+      // Keep the uploaded image exactly as it is.
+      // This preserves transparent PNG backgrounds and avoids color changes.
+      resolve(reader.result);
     };
+
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -496,7 +472,7 @@ function fileToDataUrl(file) {
 async function embedAnyImage(pdfDoc, imageData) {
   if (!imageData) throw new Error("Missing image data");
 
-  // Data URLs made by the tool are PNG. Uploaded JPG files are converted to PNG in fileToDataUrl().
+  // Uploaded images are preserved as original data URLs to avoid color/background changes.
   if (typeof imageData === "string" && imageData.startsWith("data:image/")) {
     if (imageData.startsWith("data:image/jpeg") || imageData.startsWith("data:image/jpg")) {
       return await pdfDoc.embedJpg(imageData);
