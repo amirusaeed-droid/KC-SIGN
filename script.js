@@ -129,7 +129,7 @@ document.querySelectorAll(".seal-tab").forEach(tab => {
 
 saveSeal.addEventListener("click", async () => {
   const activeTab = document.querySelector(".seal-tab.active").dataset.sealTab;
-  let sealImage = "assets/kc-sign-logo.png";
+  let sealImage = "assets/e-soi-logo.png";
 
   if (activeTab === "uploadSeal") {
     const file = sealUpload.files[0];
@@ -554,7 +554,7 @@ btnDownload.addEventListener("click", async () => {
 
     const link = document.createElement("a");
     link.href = url;
-    link.download = "KC-SIGN-signed.pdf";
+    link.download = "E-SOI-signed.pdf";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

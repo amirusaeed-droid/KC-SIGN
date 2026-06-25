@@ -1,22 +1,21 @@
-# KC-SIGN Updated Version 7
+# E-SOI Updated Pack
 
-Branding changes included:
-- Removed Kondey Council name from header and welcome areas.
-- Removed Kondey Council logo references.
-- Added standalone KC-SIGN branding.
-- Replaced default seal/logo with KC-SIGN logo.
-- Updated theme to a modern blue/cyan/green premium look.
-- Kept PDF zoom in/out controls and multi-page viewer.
-- Kept side bar and PDF page area aligned.
+Changes included:
+- Tool name changed from KC-SIGN to E-SOI.
+- Header logo replaced with the new E-SOI logo.
+- Removed the “PDF Signature Tool” text from the header.
+- Default seal/logo changed to E-SOI logo.
+- Downloaded file name changed to `E-SOI-signed.pdf`.
+- Old KC-SIGN logo asset removed from the package.
 
 Required structure:
 
-KC-SIGN/
+E-SOI/
 - index.html
 - style.css
 - script.js
 - README.md
 - assets/
-  - kc-sign-logo.png
+  - e-soi-logo.png
 
-Upload all files to GitHub Pages.
+Upload all files and the full assets folder to GitHub Pages.
