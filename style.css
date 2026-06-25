@@ -395,6 +395,7 @@ body {
 
 .field {
   position: absolute;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,6 +426,7 @@ body {
 
 .resize {
   position: absolute;
+  touch-action: none;
   right: -8px;
   bottom: -8px;
   width: 16px;
@@ -512,6 +514,7 @@ body {
 
 #sigCanvas {
   width: 100%;
+  touch-action: none;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 14px;

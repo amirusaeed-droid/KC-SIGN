@@ -19,3 +19,9 @@ E-SOI/
   - e-soi-logo.png
 
 Upload all files and the full assets folder to GitHub Pages.
+
+
+## V8 fixes
+- Footer text changed to “Developed by Amir Saeed”.
+- Fixed mobile dragging issue where signature/stamp fields could disappear while moving.
+- Fixed draw signature on phone using finger/touch with Pointer Events.

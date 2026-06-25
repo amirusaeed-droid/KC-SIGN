@@ -159,10 +159,10 @@ function addField(type, value, width = 190, height = 70) {
 }
 
 function makeFieldInteractive(field) {
-  field.addEventListener("mousedown", startDrag);
-  field.addEventListener("touchstart", startDrag, { passive: false });
-  field.querySelector(".resize").addEventListener("mousedown", startResize);
-  field.querySelector(".resize").addEventListener("touchstart", startResize, { passive: false });
+  // Pointer events work on mouse, touch, and stylus.
+  // This fixes the phone issue where dragged fields could jump/disappear during touch scrolling.
+  field.addEventListener("pointerdown", startDrag);
+  field.querySelector(".resize").addEventListener("pointerdown", startResize);
 
   field.querySelector(".remove").addEventListener("click", (e) => {
     e.stopPropagation();
@@ -175,7 +175,9 @@ function makeFieldInteractive(field) {
 }
 
 function getPoint(e) {
-  return e.touches ? e.touches[0] : e;
+  if (e.touches && e.touches.length) return e.touches[0];
+  if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0];
+  return e;
 }
 
 function selectField(field) {
@@ -186,93 +188,105 @@ function selectField(field) {
 function startDrag(e) {
   if (e.target.classList.contains("resize") || e.target.classList.contains("remove")) return;
   e.preventDefault();
+  e.stopPropagation();
 
-  const point = getPoint(e);
   const field = e.currentTarget;
-  const startX = point.clientX;
-  const startY = point.clientY;
+  const startX = e.clientX;
+  const startY = e.clientY;
   const rect = field.getBoundingClientRect();
   const shiftX = startX - rect.left;
   const shiftY = startY - rect.top;
 
-  field.classList.add("selected");
+  selectField(field);
   field.style.zIndex = "1000";
+  field.classList.add("dragging");
+
+  try {
+    field.setPointerCapture(e.pointerId);
+  } catch (_) {}
 
   function move(ev) {
+    ev.preventDefault();
+
     const pages = Array.from(document.querySelectorAll(".pageWrap"));
     let targetPage = null;
 
-    // Pick the page under the mouse. This allows dragging from page 1 to page 2.
-    const point = getPoint(ev);
+    // Pick the page under the finger/mouse. If the finger is between pages,
+    // keep the current page so the field never vanishes.
     for (const page of pages) {
       const r = page.getBoundingClientRect();
-      if (point.clientX >= r.left && point.clientX <= r.right && point.clientY >= r.top && point.clientY <= r.bottom) {
+      if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
         targetPage = page;
         break;
       }
     }
 
-    if (!targetPage) {
-      targetPage = field.parentElement;
-    }
+    if (!targetPage) targetPage = field.parentElement;
+    if (!targetPage) return;
 
     if (field.parentElement !== targetPage) {
       targetPage.appendChild(field);
     }
 
     const pageRect = targetPage.getBoundingClientRect();
-    let left = point.clientX - pageRect.left - shiftX;
-    let top = point.clientY - pageRect.top - shiftY;
+    let left = ev.clientX - pageRect.left - shiftX;
+    let top = ev.clientY - pageRect.top - shiftY;
 
-    left = Math.max(0, Math.min(left, targetPage.clientWidth - field.clientWidth));
-    top = Math.max(0, Math.min(top, targetPage.clientHeight - field.clientHeight));
+    const maxLeft = Math.max(0, targetPage.clientWidth - field.offsetWidth);
+    const maxTop = Math.max(0, targetPage.clientHeight - field.offsetHeight);
+
+    left = Math.max(0, Math.min(left, maxLeft));
+    top = Math.max(0, Math.min(top, maxTop));
 
     field.style.left = left + "px";
     field.style.top = top + "px";
   }
 
-  function up() {
+  function up(ev) {
     field.style.zIndex = "";
-    document.removeEventListener("mousemove", move);
-    document.removeEventListener("mouseup", up);
-    document.removeEventListener("touchmove", move);
-    document.removeEventListener("touchend", up);
+    field.classList.remove("dragging");
+    try {
+      field.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", up);
+    document.removeEventListener("pointercancel", up);
   }
 
-  document.addEventListener("mousemove", move);
-  document.addEventListener("mouseup", up);
-  document.addEventListener("touchmove", move, { passive: false });
-  document.addEventListener("touchend", up);
+  document.addEventListener("pointermove", move, { passive: false });
+  document.addEventListener("pointerup", up);
+  document.addEventListener("pointercancel", up);
 }
 
 function startResize(e) {
   e.stopPropagation();
   e.preventDefault();
 
-  const point = getPoint(e);
   const field = e.currentTarget.parentElement;
-  const startX = point.clientX;
-  const startY = point.clientY;
-  const startW = field.clientWidth;
-  const startH = field.clientHeight;
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startW = field.offsetWidth;
+  const startH = field.offsetHeight;
+
+  try {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  } catch (_) {}
 
   function move(ev) {
-    const point = getPoint(ev);
-    field.style.width = Math.max(70, startW + point.clientX - startX) + "px";
-    field.style.height = Math.max(35, startH + point.clientY - startY) + "px";
+    ev.preventDefault();
+    field.style.width = Math.max(70, startW + ev.clientX - startX) + "px";
+    field.style.height = Math.max(35, startH + ev.clientY - startY) + "px";
   }
 
   function up() {
-    document.removeEventListener("mousemove", move);
-    document.removeEventListener("mouseup", up);
-    document.removeEventListener("touchmove", move);
-    document.removeEventListener("touchend", up);
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", up);
+    document.removeEventListener("pointercancel", up);
   }
 
-  document.addEventListener("mousemove", move);
-  document.addEventListener("mouseup", up);
-  document.addEventListener("touchmove", move, { passive: false });
-  document.addEventListener("touchend", up);
+  document.addEventListener("pointermove", move, { passive: false });
+  document.addEventListener("pointerup", up);
+  document.addEventListener("pointercancel", up);
 }
 
 
@@ -356,18 +370,34 @@ function scrollToPage(direction) {
 /* Signature Modal */
 let drawing = false;
 
-sigCanvas.addEventListener("mousedown", (e) => {
+function startSignatureDraw(e) {
+  e.preventDefault();
   drawing = true;
   sigCtx.beginPath();
+  try {
+    sigCanvas.setPointerCapture(e.pointerId);
+  } catch (_) {}
   drawSig(e);
-});
+}
 
-sigCanvas.addEventListener("mousemove", drawSig);
-sigCanvas.addEventListener("mouseup", () => drawing = false);
-sigCanvas.addEventListener("mouseleave", () => drawing = false);
+function stopSignatureDraw(e) {
+  if (!drawing) return;
+  drawing = false;
+  sigCtx.beginPath();
+  try {
+    sigCanvas.releasePointerCapture(e.pointerId);
+  } catch (_) {}
+}
+
+sigCanvas.addEventListener("pointerdown", startSignatureDraw, { passive: false });
+sigCanvas.addEventListener("pointermove", drawSig, { passive: false });
+sigCanvas.addEventListener("pointerup", stopSignatureDraw);
+sigCanvas.addEventListener("pointerleave", stopSignatureDraw);
+sigCanvas.addEventListener("pointercancel", stopSignatureDraw);
 
 function drawSig(e) {
   if (!drawing) return;
+  e.preventDefault();
 
   const rect = sigCanvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) * (sigCanvas.width / rect.width);
@@ -375,6 +405,7 @@ function drawSig(e) {
 
   sigCtx.lineWidth = 3;
   sigCtx.lineCap = "round";
+  sigCtx.lineJoin = "round";
   sigCtx.strokeStyle = "#111";
   sigCtx.lineTo(x, y);
   sigCtx.stroke();
