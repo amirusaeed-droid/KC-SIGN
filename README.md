@@ -40,3 +40,10 @@ For clean signatures:
 - Signature fields are locked to the current page on touch devices to stop disappearing while dragging.
 - Added touch-action protection for fields and draw canvas.
 - Re-prepares high-DPI draw canvas when opening the signature modal.
+
+## V8 Mobile Drag Stability Fix
+- Fixed mobile issue where signatures could disappear or jump while dragging.
+- Fields are now preserved when the browser triggers a mobile resize or PDF re-render.
+- PDF page re-rendering is paused during drag/resize and resumed safely after release.
+- Signature/text/seal positions are saved by page ratio and restored correctly after zoom or resize.
+- Added safer Pointer Events handling for mobile, tablet, stylus and desktop.

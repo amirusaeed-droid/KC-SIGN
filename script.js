@@ -7,6 +7,8 @@ let currentSignatureDataUrl = null;
 let pdfScale = 1.35;
 let zoomLevel = 1;
 let fieldId = 1;
+let isFieldDragging = false;
+let pendingResizeRender = false;
 
 const viewer = document.getElementById("viewer");
 const welcome = document.getElementById("welcome");
@@ -83,7 +85,55 @@ pdfUpload.addEventListener("change", async (e) => {
   updatePageIndicator();
 });
 
+function snapshotFields() {
+  return Array.from(document.querySelectorAll(".field")).map(field => {
+    const pageWrap = field.parentElement;
+    const pageW = Math.max(1, pageWrap.clientWidth || 1);
+    const pageH = Math.max(1, pageWrap.clientHeight || 1);
+    return {
+      page: Number(pageWrap.dataset.page || 1),
+      type: field.dataset.type,
+      value: (field.dataset.type === "signature" || field.dataset.type === "stamp") ? field.dataset.image : field.dataset.text,
+      leftRatio: parseFloat(field.style.left || 0) / pageW,
+      topRatio: parseFloat(field.style.top || 0) / pageH,
+      widthRatio: field.offsetWidth / pageW,
+      heightRatio: field.offsetHeight / pageH,
+      selected: field.classList.contains("selected")
+    };
+  });
+}
+
+function restoreFields(savedFields) {
+  if (!savedFields || !savedFields.length) return;
+  let selectedField = null;
+
+  savedFields.forEach(item => {
+    const pageWrap = document.querySelector(`.pageWrap[data-page="${item.page}"]`);
+    if (!pageWrap) return;
+
+    const w = Math.max(70, item.widthRatio * pageWrap.clientWidth);
+    const h = Math.max(35, item.heightRatio * pageWrap.clientHeight);
+    const field = createFieldElement(item.type, item.value, w, h);
+
+    const maxLeft = Math.max(0, pageWrap.clientWidth - w);
+    const maxTop = Math.max(0, pageWrap.clientHeight - h);
+    field.style.left = Math.max(0, Math.min(item.leftRatio * pageWrap.clientWidth, maxLeft)) + "px";
+    field.style.top = Math.max(0, Math.min(item.topRatio * pageWrap.clientHeight, maxTop)) + "px";
+
+    pageWrap.appendChild(field);
+    if (item.selected) selectedField = field;
+  });
+
+  if (selectedField) selectField(selectedField);
+}
+
 async function renderAllPages() {
+  if (isFieldDragging) {
+    pendingResizeRender = true;
+    return;
+  }
+
+  const savedFields = snapshotFields();
   viewer.innerHTML = "";
 
   // Make the PDF viewer behave like a real document viewer:
@@ -117,6 +167,8 @@ async function renderAllPages() {
     pageWrap.appendChild(canvas);
     viewer.appendChild(pageWrap);
   }
+
+  restoreFields(savedFields);
 }
 
 btnAddSignature.addEventListener("click", () => { signatureModal.classList.remove("hidden"); setTimeout(prepareSignatureCanvas, 50); });
@@ -209,6 +261,8 @@ function startDrag(e) {
   selectField(field);
   field.style.zIndex = "1000";
   field.classList.add("dragging");
+  isFieldDragging = true;
+  pendingResizeRender = false;
   document.body.classList.add("field-dragging");
   viewer.classList.add("dragging");
 
@@ -260,8 +314,18 @@ function startDrag(e) {
   function up(ev) {
     field.style.zIndex = "";
     field.classList.remove("dragging");
+    isFieldDragging = false;
     document.body.classList.remove("field-dragging");
     viewer.classList.remove("dragging");
+    if (pendingResizeRender) {
+      pendingResizeRender = false;
+      setTimeout(async () => {
+        if (pdfDocProxy && !isFieldDragging) {
+          await renderAllPages();
+          updatePageIndicator();
+        }
+      }, 120);
+    }
     try {
       field.releasePointerCapture(e.pointerId);
     } catch (_) {}
@@ -279,6 +343,8 @@ function startResize(e) {
   e.stopPropagation();
   e.preventDefault();
 
+  isFieldDragging = true;
+  pendingResizeRender = false;
   document.body.classList.add("field-dragging");
   viewer.classList.add("dragging");
 
@@ -299,8 +365,18 @@ function startResize(e) {
   }
 
   function up() {
+    isFieldDragging = false;
     document.body.classList.remove("field-dragging");
     viewer.classList.remove("dragging");
+    if (pendingResizeRender) {
+      pendingResizeRender = false;
+      setTimeout(async () => {
+        if (pdfDocProxy && !isFieldDragging) {
+          await renderAllPages();
+          updatePageIndicator();
+        }
+      }, 120);
+    }
     document.removeEventListener("pointermove", move);
     document.removeEventListener("pointerup", up);
     document.removeEventListener("pointercancel", up);
@@ -842,8 +918,17 @@ if (btnZoomOut) {
   });
 }
 
-window.addEventListener("resize", async () => {
+let resizeTimer = null;
+window.addEventListener("resize", () => {
   if (!pdfDocProxy) return;
-  await renderAllPages();
-  updatePageIndicator();
+  if (isFieldDragging) {
+    pendingResizeRender = true;
+    return;
+  }
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(async () => {
+    if (!pdfDocProxy || isFieldDragging) return;
+    await renderAllPages();
+    updatePageIndicator();
+  }, 180);
 });
