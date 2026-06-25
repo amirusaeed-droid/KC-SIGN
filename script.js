@@ -39,6 +39,20 @@ const signatureModal = document.getElementById("signatureModal");
 const closeModal = document.getElementById("closeModal");
 const sigCanvas = document.getElementById("sigCanvas");
 const sigCtx = sigCanvas.getContext("2d");
+
+function prepareSignatureCanvas() {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const rect = sigCanvas.getBoundingClientRect();
+  const cssW = rect.width || 620;
+  const cssH = rect.height || 210;
+  sigCanvas.width = Math.round(cssW * ratio);
+  sigCanvas.height = Math.round(cssH * ratio);
+  sigCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  sigCtx.lineCap = "round";
+  sigCtx.lineJoin = "round";
+}
+setTimeout(prepareSignatureCanvas, 0);
+window.addEventListener("resize", prepareSignatureCanvas);
 const clearSig = document.getElementById("clearSig");
 const saveSignature = document.getElementById("saveSignature");
 const typedSignature = document.getElementById("typedSignature");
@@ -386,8 +400,8 @@ function drawSig(e) {
   e.preventDefault();
 
   const rect = sigCanvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (sigCanvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (sigCanvas.height / rect.height);
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 
   sigCtx.lineWidth = 3;
   sigCtx.lineCap = "round";
@@ -400,7 +414,10 @@ function drawSig(e) {
 }
 
 clearSig.addEventListener("click", () => {
+  sigCtx.save();
+  sigCtx.setTransform(1, 0, 0, 1, 0, 0);
   sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  sigCtx.restore();
 });
 
 typedSignature.addEventListener("input", () => {
@@ -433,7 +450,7 @@ saveSignature.addEventListener("click", async () => {
       alert("Please upload signature image first.");
       return;
     }
-    currentSignatureDataUrl = await fileToDataUrl(file);
+    currentSignatureDataUrl = await signatureFileToDataUrl(file);
   }
 
   signatureModal.classList.add("hidden");
@@ -452,6 +469,95 @@ function makeTypedSignatureImage(text) {
   ctx.textBaseline = "middle";
   ctx.fillText(text, c.width / 2, c.height / 2);
   return c.toDataURL("image/png");
+}
+
+
+function signatureFileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // Clean uploaded signature without reducing quality:
+          // 1) crop empty margins, 2) remove white/grey paper background,
+          // 3) export as transparent PNG so it blends with the PDF page.
+          const srcCanvas = document.createElement("canvas");
+          srcCanvas.width = img.naturalWidth || img.width;
+          srcCanvas.height = img.naturalHeight || img.height;
+          const srcCtx = srcCanvas.getContext("2d", { willReadFrequently: true });
+          srcCtx.drawImage(img, 0, 0, srcCanvas.width, srcCanvas.height);
+
+          const imgData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+          const data = imgData.data;
+          const w = srcCanvas.width;
+          const h = srcCanvas.height;
+          let minX = w, minY = h, maxX = -1, maxY = -1;
+
+          function isInk(r, g, b, a) {
+            if (a < 20) return false;
+            // Treat light paper/scan texture as background. Keep blue/black ink.
+            const veryLight = r > 215 && g > 215 && b > 215;
+            const lowContrastPaper = r > 190 && g > 190 && b > 190 && Math.abs(r - g) < 22 && Math.abs(g - b) < 22;
+            return !(veryLight || lowContrastPaper);
+          }
+
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const i = (y * w + x) * 4;
+              if (isInk(data[i], data[i + 1], data[i + 2], data[i + 3])) {
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+              }
+            }
+          }
+
+          // If the image cannot be processed, keep the original upload.
+          if (maxX < minX || maxY < minY) {
+            resolve(reader.result);
+            return;
+          }
+
+          const pad = Math.max(8, Math.round(Math.min(w, h) * 0.035));
+          minX = Math.max(0, minX - pad);
+          minY = Math.max(0, minY - pad);
+          maxX = Math.min(w - 1, maxX + pad);
+          maxY = Math.min(h - 1, maxY + pad);
+
+          const cropW = maxX - minX + 1;
+          const cropH = maxY - minY + 1;
+          const outCanvas = document.createElement("canvas");
+          outCanvas.width = cropW;
+          outCanvas.height = cropH;
+          const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+          outCtx.drawImage(srcCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+          const outData = outCtx.getImageData(0, 0, cropW, cropH);
+          const od = outData.data;
+          for (let i = 0; i < od.length; i += 4) {
+            const r = od[i], g = od[i + 1], b = od[i + 2], a = od[i + 3];
+            const paper = a < 20 || (r > 215 && g > 215 && b > 215) || (r > 190 && g > 190 && b > 190 && Math.abs(r - g) < 22 && Math.abs(g - b) < 22);
+            if (paper) {
+              od[i + 3] = 0;
+            }
+          }
+          outCtx.putImageData(outData, 0, 0);
+          resolve(outCanvas.toDataURL("image/png"));
+        } catch (err) {
+          // Fallback: preserve original file if cleanup fails.
+          resolve(reader.result);
+        }
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function fileToDataUrl(file) {

@@ -31,3 +31,11 @@ Upload all files and the full assets folder to GitHub Pages.
 - Signature and seal uploads are now preserved as original images to avoid color mismatch.
 - Transparent PNG signatures now stay transparent.
 - Removed the default E-SOI seal/logo option. Only custom seal upload remains.
+
+
+## V3 quality fix
+- Uploaded signatures are now cleaned automatically: white/grey paper background is removed and empty margins are cropped.
+- Signature images are exported as transparent PNG before placing on the PDF, so they blend with the original document.
+- Custom seal only: the default E-SOI logo seal option is removed.
+- Finger/stylus drawing uses high-DPI pointer events for better mobile quality.
+- Footer text: Developed by Amir Saeed.
