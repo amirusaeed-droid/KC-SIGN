@@ -129,7 +129,7 @@ document.querySelectorAll(".seal-tab").forEach(tab => {
 
 saveSeal.addEventListener("click", async () => {
   const activeTab = document.querySelector(".seal-tab.active").dataset.sealTab;
-  let sealImage = "assets/kondey-council-logo.png";
+  let sealImage = "assets/kc-sign-logo.png";
 
   if (activeTab === "uploadSeal") {
     const file = sealUpload.files[0];
