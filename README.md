@@ -1,22 +1,35 @@
-# E-SOI Updated Pack V5 Background Match
+# E-SOI Updated Pack V6 - Signature Optimizer
 
-Changes included:
-- Added separate Upload PNG and Upload JPG signature options.
-- Added Remove Background option for uploaded signatures.
-- Added Background Tolerance slider to match scanned signatures with PDF page color.
-- Keeps original PNG/JPG quality when background removal is turned off.
-- Removes E-SOI logo default seal option; only custom seal upload remains.
-- Footer text: Developed by Amir Saeed.
-- Mobile draw and drag support retained.
+## Main improvements
+- Added **Signature Optimizer** for low-quality, dark-background, scanned, and mobile photo signatures.
+- Added live **Original vs Enhanced** preview before inserting the signature.
+- Added **Improve low quality signature** option.
+- Added **Remove paper / dark background** option.
+- Added **Clean strength** slider to control background removal.
+- Added **Ink colour modes**:
+  - Original colour
+  - Clean blue ink
+  - Clean black ink
+- Added automatic crop around the signature.
+- Added automatic upscaling for small uploaded signatures.
+- Improved contrast and opacity for weak signature lines.
+- Kept custom seal upload only. The default E-SOI logo seal option is removed.
+- Footer remains: **Developed by Amir Saeed**.
 
-Required structure:
+## Recommended use
+For clean signatures:
+1. Upload the PDF.
+2. Click **Signature**.
+3. Open the **Upload** tab.
+4. Upload signature image.
+5. Keep **Improve low quality signature** enabled.
+6. Keep **Remove paper / dark background** enabled.
+7. Choose **Clean blue ink** or **Clean black ink**.
+8. Adjust **Clean strength** until the preview looks good.
+9. Click **Use Signature**.
 
-E-SOI/
+## Files
 - index.html
 - style.css
 - script.js
-- README.md
-- assets/
-  - e-soi-logo.png
-
-Upload these files to GitHub Pages and replace the old files.
+- assets/e-soi-logo.png

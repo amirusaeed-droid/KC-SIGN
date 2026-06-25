@@ -57,10 +57,15 @@ const clearSig = document.getElementById("clearSig");
 const saveSignature = document.getElementById("saveSignature");
 const typedSignature = document.getElementById("typedSignature");
 const typedPreview = document.getElementById("typedPreview");
-const sigUploadPng = document.getElementById("sigUploadPng");
-const sigUploadJpg = document.getElementById("sigUploadJpg");
-const removeSignatureBg = document.getElementById("removeSignatureBg");
-const bgTolerance = document.getElementById("bgTolerance");
+const sigUpload = document.getElementById("sigUpload");
+const sigEnhanceToggle = document.getElementById("sigEnhanceToggle");
+const sigRemoveBgToggle = document.getElementById("sigRemoveBgToggle");
+const sigInkMode = document.getElementById("sigInkMode");
+const sigCleanStrength = document.getElementById("sigCleanStrength");
+const sigQualityBadge = document.getElementById("sigQualityBadge");
+const sigOriginalPreview = document.getElementById("sigOriginalPreview");
+const sigEnhancedPreview = document.getElementById("sigEnhancedPreview");
+let latestOptimizedSignatureDataUrl = null;
 
 pdfUpload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
@@ -447,17 +452,13 @@ saveSignature.addEventListener("click", async () => {
     currentSignatureDataUrl = makeTypedSignatureImage(typedSignature.value || "Signature");
   }
 
-  if (activeTab === "uploadPng" || activeTab === "uploadJpg") {
-    const input = activeTab === "uploadPng" ? sigUploadPng : sigUploadJpg;
-    const file = input && input.files ? input.files[0] : null;
+  if (activeTab === "upload") {
+    const file = sigUpload.files[0];
     if (!file) {
-      alert(activeTab === "uploadPng" ? "Please upload PNG signature first." : "Please upload JPG signature first.");
+      alert("Please upload signature image first.");
       return;
     }
-
-    const shouldRemoveBg = !!(removeSignatureBg && removeSignatureBg.checked);
-    const tolerance = bgTolerance ? Number(bgTolerance.value) : 45;
-    currentSignatureDataUrl = await signatureFileToDataUrl(file, shouldRemoveBg, tolerance);
+    currentSignatureDataUrl = latestOptimizedSignatureDataUrl || await signatureFileToDataUrl(file);
   }
 
   signatureModal.classList.add("hidden");
@@ -479,134 +480,210 @@ function makeTypedSignatureImage(text) {
 }
 
 
-function signatureFileToDataUrl(file, removeBg = true, tolerance = 45) {
+
+function signatureFileToDataUrl(file) {
+  // Original mode preserves exact upload. Enhanced mode creates a clean transparent PNG.
+  if (!sigEnhanceToggle || !sigEnhanceToggle.checked) {
+    return fileToDataUrl(file);
+  }
+  return optimizeSignatureFile(file, {
+    removeBackground: !sigRemoveBgToggle || sigRemoveBgToggle.checked,
+    inkMode: sigInkMode ? sigInkMode.value : "blue",
+    cleanStrength: sigCleanStrength ? Number(sigCleanStrength.value) : 48,
+    preview: false
+  });
+}
+
+function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
-    reader.onload = () => {
-      // Keep original PNG/JPG when background removal is OFF.
-      // This avoids any quality or color changes.
-      if (!removeBg) {
-        resolve(reader.result);
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const srcCanvas = document.createElement("canvas");
-          srcCanvas.width = img.naturalWidth || img.width;
-          srcCanvas.height = img.naturalHeight || img.height;
-          const srcCtx = srcCanvas.getContext("2d", { willReadFrequently: true });
-          srcCtx.drawImage(img, 0, 0, srcCanvas.width, srcCanvas.height);
-
-          const imgData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
-          const data = imgData.data;
-          const w = srcCanvas.width;
-          const h = srcCanvas.height;
-
-          // Estimate the paper/background color from the four corners.
-          const sampleSize = Math.max(6, Math.round(Math.min(w, h) * 0.04));
-          let sr = 0, sg = 0, sb = 0, count = 0;
-          function sampleRect(x0, y0, ww, hh) {
-            for (let y = y0; y < y0 + hh; y++) {
-              for (let x = x0; x < x0 + ww; x++) {
-                const i = (y * w + x) * 4;
-                sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; count++;
-              }
-            }
-          }
-          sampleRect(0, 0, sampleSize, sampleSize);
-          sampleRect(w - sampleSize, 0, sampleSize, sampleSize);
-          sampleRect(0, h - sampleSize, sampleSize, sampleSize);
-          sampleRect(w - sampleSize, h - sampleSize, sampleSize, sampleSize);
-          const bg = { r: sr / count, g: sg / count, b: sb / count };
-
-          // Tolerance is user controlled. Higher removes more paper texture.
-          const tol = 18 + (Math.max(10, Math.min(90, tolerance)) * 1.25);
-          const inkBoost = 8;
-
-          function colorDistance(r, g, b, c) {
-            const dr = r - c.r, dg = g - c.g, db = b - c.b;
-            return Math.sqrt(dr * dr + dg * dg + db * db);
-          }
-
-          function isBackground(r, g, b, a) {
-            if (a < 20) return true;
-            const nearCornerPaper = colorDistance(r, g, b, bg) < tol;
-            const generallyLightPaper = r > 205 && g > 205 && b > 205 && Math.max(r, g, b) - Math.min(r, g, b) < 45;
-            return nearCornerPaper || generallyLightPaper;
-          }
-
-          function isInk(r, g, b, a) {
-            if (a < 20) return false;
-            if (isBackground(r, g, b, a)) return false;
-            // Keep blue, black, and dark strokes. This protects ink from removal.
-            const darkness = 255 - ((r + g + b) / 3);
-            const blueInk = b > r + inkBoost || b > g + inkBoost;
-            return darkness > 22 || blueInk;
-          }
-
-          let minX = w, minY = h, maxX = -1, maxY = -1;
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              const i = (y * w + x) * 4;
-              if (isInk(data[i], data[i + 1], data[i + 2], data[i + 3])) {
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-              }
-            }
-          }
-
-          if (maxX < minX || maxY < minY) {
-            resolve(reader.result);
-            return;
-          }
-
-          const pad = Math.max(6, Math.round(Math.min(w, h) * 0.025));
-          minX = Math.max(0, minX - pad);
-          minY = Math.max(0, minY - pad);
-          maxX = Math.min(w - 1, maxX + pad);
-          maxY = Math.min(h - 1, maxY + pad);
-
-          const cropW = maxX - minX + 1;
-          const cropH = maxY - minY + 1;
-          const outCanvas = document.createElement("canvas");
-          outCanvas.width = cropW;
-          outCanvas.height = cropH;
-          const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
-          outCtx.drawImage(srcCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-
-          const outData = outCtx.getImageData(0, 0, cropW, cropH);
-          const od = outData.data;
-          for (let i = 0; i < od.length; i += 4) {
-            const r = od[i], g = od[i + 1], b = od[i + 2], a = od[i + 3];
-            if (isBackground(r, g, b, a)) {
-              // Fade paper pixels smoothly instead of creating rough edges.
-              const dist = colorDistance(r, g, b, bg);
-              const fadeStart = tol * 0.72;
-              const fadeEnd = tol * 1.25;
-              let alpha = (dist - fadeStart) / (fadeEnd - fadeStart);
-              alpha = Math.max(0, Math.min(1, alpha));
-              od[i + 3] = Math.round(a * alpha);
-            }
-          }
-          outCtx.putImageData(outData, 0, 0);
-          resolve(outCanvas.toDataURL("image/png"));
-        } catch (err) {
-          resolve(reader.result);
-        }
-      };
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-
+    reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
 }
+
+function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function colourDistance(a, b) {
+  const dr = a[0] - b[0];
+  const dg = a[1] - b[1];
+  const db = a[2] - b[2];
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+function estimateBackgroundColour(data, w, h) {
+  // Average the outer border. This handles white paper, grey scans and dark photos.
+  let r = 0, g = 0, b = 0, count = 0;
+  const border = Math.max(2, Math.round(Math.min(w, h) * 0.04));
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (x > border && x < w - border && y > border && y < h - border) continue;
+      const i = (y * w + x) * 4;
+      const a = data[i + 3];
+      if (a < 20) continue;
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
+    }
+  }
+  if (!count) return [255, 255, 255];
+  return [r / count, g / count, b / count];
+}
+
+function pixelInkScore(r, g, b, bg) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const saturation = max - min;
+  const darkness = 255 - ((r + g + b) / 3);
+  const bgDist = colourDistance([r, g, b], bg);
+  // Higher score = more likely to be signature ink.
+  return bgDist * 0.85 + saturation * 0.75 + darkness * 0.55;
+}
+
+async function optimizeSignatureFile(file, options = {}) {
+  const dataUrl = await readFileAsDataUrl(file);
+  const img = await loadImageFromDataUrl(dataUrl);
+
+  const originalW = img.naturalWidth || img.width;
+  const originalH = img.naturalHeight || img.height;
+  if (!originalW || !originalH) return dataUrl;
+
+  // Upscale small images before cleanup. This improves signatures from WhatsApp/photos/screenshots.
+  const longest = Math.max(originalW, originalH);
+  const upscale = longest < 900 ? Math.min(4, Math.ceil(1200 / longest)) : 1;
+  const w = originalW * upscale;
+  const h = originalH * upscale;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const bg = estimateBackgroundColour(data, w, h);
+  const strength = Math.max(15, Math.min(90, Number(options.cleanStrength || 48)));
+  const threshold = 44 + strength * 1.55;
+  const removeBg = options.removeBackground !== false;
+  const inkMode = options.inkMode || "blue";
+
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+      if (a < 20) continue;
+
+      const score = pixelInkScore(r, g, b, bg);
+      const isLightPaper = r > 185 && g > 185 && b > 185 && Math.abs(r - g) < 32 && Math.abs(g - b) < 32;
+      const isNearBg = colourDistance([r, g, b], bg) < threshold;
+      const keep = !removeBg || (!isNearBg && !isLightPaper) || score > threshold + 18;
+
+      if (keep) {
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) return dataUrl;
+
+  const pad = Math.max(14 * upscale, Math.round(Math.min(w, h) * 0.035));
+  minX = Math.max(0, minX - pad);
+  minY = Math.max(0, minY - pad);
+  maxX = Math.min(w - 1, maxX + pad);
+  maxY = Math.min(h - 1, maxY + pad);
+
+  const cropW = maxX - minX + 1;
+  const cropH = maxY - minY + 1;
+  const outCanvas = document.createElement("canvas");
+  outCanvas.width = cropW;
+  outCanvas.height = cropH;
+  const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+  outCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+  const out = outCtx.getImageData(0, 0, cropW, cropH);
+  const od = out.data;
+  const croppedBg = estimateBackgroundColour(od, cropW, cropH);
+  const cropThreshold = 40 + strength * 1.45;
+
+  for (let i = 0; i < od.length; i += 4) {
+    const r = od[i], g = od[i + 1], b = od[i + 2], a = od[i + 3];
+    if (a < 20) { od[i + 3] = 0; continue; }
+
+    const dist = colourDistance([r, g, b], croppedBg);
+    const lightPaper = r > 182 && g > 182 && b > 182 && Math.abs(r - g) < 34 && Math.abs(g - b) < 34;
+    const darkPaper = r < 55 && g < 55 && b < 55 && dist < cropThreshold;
+    const score = pixelInkScore(r, g, b, croppedBg);
+    const isBackground = removeBg && ((dist < cropThreshold) || lightPaper || darkPaper) && score < cropThreshold + 28;
+
+    if (isBackground) {
+      od[i + 3] = 0;
+      continue;
+    }
+
+    // Strengthen weak low-quality ink while preserving the shape.
+    let alpha = Math.min(255, Math.max(90, a + 55));
+    od[i + 3] = alpha;
+
+    if (inkMode === "blue") {
+      const lum = (r + g + b) / 3;
+      const depth = Math.max(0, Math.min(1, (210 - lum + strength) / 210));
+      od[i] = Math.round(34 + 18 * (1 - depth));
+      od[i + 1] = Math.round(79 + 28 * (1 - depth));
+      od[i + 2] = Math.round(164 + 40 * (1 - depth));
+    } else if (inkMode === "black") {
+      const lum = (r + g + b) / 3;
+      const v = Math.max(8, Math.min(45, lum * 0.18));
+      od[i] = v; od[i + 1] = v; od[i + 2] = v;
+    } else {
+      // Original colour but better contrast.
+      od[i] = Math.max(0, Math.min(255, (r - 128) * 1.25 + 128));
+      od[i + 1] = Math.max(0, Math.min(255, (g - 128) * 1.25 + 128));
+      od[i + 2] = Math.max(0, Math.min(255, (b - 128) * 1.25 + 128));
+    }
+  }
+
+  outCtx.putImageData(out, 0, 0);
+  return outCanvas.toDataURL("image/png");
+}
+
+async function updateSignaturePreview() {
+  if (!sigUpload || !sigUpload.files || !sigUpload.files[0]) return;
+  const file = sigUpload.files[0];
+  try {
+    const original = await readFileAsDataUrl(file);
+    latestOptimizedSignatureDataUrl = await signatureFileToDataUrl(file);
+    if (sigOriginalPreview) sigOriginalPreview.src = original;
+    if (sigEnhancedPreview) sigEnhancedPreview.src = latestOptimizedSignatureDataUrl;
+    if (sigQualityBadge) {
+      const img = await loadImageFromDataUrl(original);
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      const label = Math.max(w, h) >= 1200 ? "Good quality" : Math.max(w, h) >= 700 ? "Medium quality" : "Low quality · optimizer recommended";
+      sigQualityBadge.textContent = `${label} (${w}×${h})`;
+    }
+  } catch (err) {
+    console.warn(err);
+    if (sigQualityBadge) sigQualityBadge.textContent = "Could not preview image";
+  }
+}
+
+if (sigUpload) sigUpload.addEventListener("change", updateSignaturePreview);
+[sigEnhanceToggle, sigRemoveBgToggle, sigInkMode, sigCleanStrength].forEach(el => {
+  if (el) el.addEventListener("input", updateSignaturePreview);
+  if (el) el.addEventListener("change", updateSignaturePreview);
+});
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
