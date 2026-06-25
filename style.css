@@ -1803,3 +1803,29 @@ body.dark .feature-card p {
   .brand h1 { font-size: 22px !important; }
   .brand p { font-size: 11px !important; }
 }
+
+/* E-SOI V4: separate PNG/JPG signature upload options */
+.signature-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.signature-tabs .tab {
+  text-align: center;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+#sigCanvas {
+  touch-action: none;
+}
+
+.field {
+  touch-action: none;
+}
+
+@media (max-width: 720px) {
+  .signature-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

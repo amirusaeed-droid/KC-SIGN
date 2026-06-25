@@ -39,3 +39,11 @@ Upload all files and the full assets folder to GitHub Pages.
 - Custom seal only: the default E-SOI logo seal option is removed.
 - Finger/stylus drawing uses high-DPI pointer events for better mobile quality.
 - Footer text: Developed by Amir Saeed.
+
+## E-SOI V4 Signature Quality Update
+- Signature modal now has separate **Upload PNG** and **Upload JPG** options.
+- PNG files stay PNG and are embedded directly to preserve transparency and quality.
+- JPG files stay JPG and are embedded directly to preserve original photo/scan colours.
+- Uploaded signatures are not redrawn on canvas, not re-exported, and not compressed by the tool.
+- Custom seal upload remains only custom upload; no default E-SOI seal option.
+- Footer uses: Developed by Amir Saeed.

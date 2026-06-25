@@ -147,7 +147,7 @@
       </div>
       <div class="guide-list">
         <p><strong>1. Upload PDF:</strong> Select the PDF document from your phone or computer.</p>
-        <p><strong>2. Add Signature:</strong> Draw, type, or upload your signature image. Then press <b>Use Signature</b>.</p>
+        <p><strong>2. Add Signature:</strong> Draw, type, upload PNG, or upload JPG. PNG stays PNG and JPG stays JPG to keep better quality.</p>
         <p><strong>3. Add Seal:</strong> Upload your custom seal/stamp image. The default E-SOI logo seal option has been removed.</p>
         <p><strong>4. Move Fields:</strong> Drag signature, seal, name, date, or text to the correct place. Use the corner dot to resize.</p>
         <p><strong>5. Use More Than Once:</strong> Select a field and press <b>Duplicate Selected</b> to place the same signature or seal again.</p>
@@ -183,10 +183,11 @@
         <button id="closeModal">×</button>
       </div>
 
-      <div class="tabs">
+      <div class="tabs signature-tabs">
         <button class="tab active" data-tab="draw">Draw</button>
         <button class="tab" data-tab="type">Type</button>
-        <button class="tab" data-tab="upload">Upload</button>
+        <button class="tab" data-tab="png">Upload PNG</button>
+        <button class="tab" data-tab="jpg">Upload JPG</button>
       </div>
 
       <div class="tab-panel" id="drawPanel">
@@ -199,12 +200,21 @@
         <div id="typedPreview">Your Signature</div>
       </div>
 
-      <div class="tab-panel hidden" id="uploadPanel">
+      <div class="tab-panel hidden" id="pngPanel">
         <label class="upload-box small-upload">
-          <input type="file" id="sigUpload" accept="image/png,image/jpeg" />
+          <input type="file" id="sigPngUpload" accept="image/png" />
           <span class="upload-icon">🖼</span>
-          <strong>Upload Signature Image</strong>
-          <small>PNG or JPG</small>
+          <strong>Upload PNG Signature</strong>
+          <small>Best for transparent signature. PNG remains PNG.</small>
+        </label>
+      </div>
+
+      <div class="tab-panel hidden" id="jpgPanel">
+        <label class="upload-box small-upload">
+          <input type="file" id="sigJpgUpload" accept="image/jpeg,image/jpg" />
+          <span class="upload-icon">📷</span>
+          <strong>Upload JPG Signature</strong>
+          <small>Best for photo/scanned signature. JPG remains JPG.</small>
         </label>
       </div>
 
