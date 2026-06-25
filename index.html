@@ -147,7 +147,7 @@
       </div>
       <div class="guide-list">
         <p><strong>1. Upload PDF:</strong> Select the PDF document from your phone or computer.</p>
-        <p><strong>2. Add Signature:</strong> Draw, type, upload PNG, or upload JPG. PNG stays PNG and JPG stays JPG to keep better quality.</p>
+        <p><strong>2. Add Signature:</strong> Draw, type, or upload PNG/JPG signature. Use <b>Remove background</b> to blend scanned signatures with the PDF.</p>
         <p><strong>3. Add Seal:</strong> Upload your custom seal/stamp image. The default E-SOI logo seal option has been removed.</p>
         <p><strong>4. Move Fields:</strong> Drag signature, seal, name, date, or text to the correct place. Use the corner dot to resize.</p>
         <p><strong>5. Use More Than Once:</strong> Select a field and press <b>Duplicate Selected</b> to place the same signature or seal again.</p>
@@ -186,8 +186,8 @@
       <div class="tabs signature-tabs">
         <button class="tab active" data-tab="draw">Draw</button>
         <button class="tab" data-tab="type">Type</button>
-        <button class="tab" data-tab="png">Upload PNG</button>
-        <button class="tab" data-tab="jpg">Upload JPG</button>
+        <button class="tab" data-tab="uploadPng">Upload PNG</button>
+        <button class="tab" data-tab="uploadJpg">Upload JPG</button>
       </div>
 
       <div class="tab-panel" id="drawPanel">
@@ -200,21 +200,33 @@
         <div id="typedPreview">Your Signature</div>
       </div>
 
-      <div class="tab-panel hidden" id="pngPanel">
+      <div class="tab-panel hidden" id="uploadPngPanel">
         <label class="upload-box small-upload">
-          <input type="file" id="sigPngUpload" accept="image/png" />
+          <input type="file" id="sigUploadPng" accept="image/png" />
           <span class="upload-icon">🖼</span>
           <strong>Upload PNG Signature</strong>
-          <small>Best for transparent signature. PNG remains PNG.</small>
+          <small>Best for transparent signatures</small>
         </label>
       </div>
 
-      <div class="tab-panel hidden" id="jpgPanel">
+      <div class="tab-panel hidden" id="uploadJpgPanel">
         <label class="upload-box small-upload">
-          <input type="file" id="sigJpgUpload" accept="image/jpeg,image/jpg" />
+          <input type="file" id="sigUploadJpg" accept="image/jpeg,image/jpg" />
           <span class="upload-icon">📷</span>
           <strong>Upload JPG Signature</strong>
-          <small>Best for photo/scanned signature. JPG remains JPG.</small>
+          <small>Best for scanned/photo signatures</small>
+        </label>
+      </div>
+
+      <div class="signature-cleanup-box">
+        <label class="check-row">
+          <input type="checkbox" id="removeSignatureBg" checked />
+          <span>Remove background to match document</span>
+        </label>
+        <label class="tolerance-row">
+          <span>Background tolerance</span>
+          <input type="range" id="bgTolerance" min="10" max="90" value="45" />
+          <small>Low keeps more paper, High removes more background</small>
         </label>
       </div>
 

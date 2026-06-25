@@ -1,12 +1,13 @@
-# E-SOI Updated Pack
+# E-SOI Updated Pack V5 Background Match
 
 Changes included:
-- Tool name changed from KC-SIGN to E-SOI.
-- Header logo replaced with the new E-SOI logo.
-- Removed the “PDF Signature Tool” text from the header.
-- Downloaded file name changed to `E-SOI-signed.pdf`.
-- Default E-SOI logo seal option removed. Only custom seal upload remains.
-- Old KC-SIGN logo asset removed from the package.
+- Added separate Upload PNG and Upload JPG signature options.
+- Added Remove Background option for uploaded signatures.
+- Added Background Tolerance slider to match scanned signatures with PDF page color.
+- Keeps original PNG/JPG quality when background removal is turned off.
+- Removes E-SOI logo default seal option; only custom seal upload remains.
+- Footer text: Developed by Amir Saeed.
+- Mobile draw and drag support retained.
 
 Required structure:
 
@@ -18,32 +19,4 @@ E-SOI/
 - assets/
   - e-soi-logo.png
 
-Upload all files and the full assets folder to GitHub Pages.
-
-
-## V8 fixes
-- Footer text changed to “Developed by Amir Saeed”.
-- Fixed mobile dragging issue where signature/stamp fields could disappear while moving.
-- Fixed draw signature on phone using finger/touch with Pointer Events.
-
-
-## Latest fix
-- Signature and seal uploads are now preserved as original images to avoid color mismatch.
-- Transparent PNG signatures now stay transparent.
-- Removed the default E-SOI seal/logo option. Only custom seal upload remains.
-
-
-## V3 quality fix
-- Uploaded signatures are now cleaned automatically: white/grey paper background is removed and empty margins are cropped.
-- Signature images are exported as transparent PNG before placing on the PDF, so they blend with the original document.
-- Custom seal only: the default E-SOI logo seal option is removed.
-- Finger/stylus drawing uses high-DPI pointer events for better mobile quality.
-- Footer text: Developed by Amir Saeed.
-
-## E-SOI V4 Signature Quality Update
-- Signature modal now has separate **Upload PNG** and **Upload JPG** options.
-- PNG files stay PNG and are embedded directly to preserve transparency and quality.
-- JPG files stay JPG and are embedded directly to preserve original photo/scan colours.
-- Uploaded signatures are not redrawn on canvas, not re-exported, and not compressed by the tool.
-- Custom seal upload remains only custom upload; no default E-SOI seal option.
-- Footer uses: Developed by Amir Saeed.
+Upload these files to GitHub Pages and replace the old files.

@@ -1804,28 +1804,60 @@ body.dark .feature-card p {
   .brand p { font-size: 11px !important; }
 }
 
-/* E-SOI V4: separate PNG/JPG signature upload options */
+/* E-SOI V5 signature background remover */
 .signature-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, 1fr);
 }
-
-.signature-tabs .tab {
-  text-align: center;
-  padding-left: 10px;
-  padding-right: 10px;
+.signature-cleanup-box {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #dbe4ef;
+  border-radius: 16px;
+  background: rgba(248,250,252,.86);
 }
-
-#sigCanvas {
-  touch-action: none;
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  color: var(--navy);
 }
-
-.field {
-  touch-action: none;
+.check-row input {
+  width: 18px;
+  height: 18px;
 }
-
+.tolerance-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  color: #334155;
+  font-weight: 800;
+}
+.tolerance-row input[type="range"] {
+  width: 100%;
+}
+.tolerance-row small {
+  color: #64748b;
+  font-weight: 700;
+}
+body.dark .signature-cleanup-box {
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.18);
+}
+body.dark .check-row,
+body.dark .tolerance-row {
+  color: #e5f2ff;
+}
 @media (max-width: 720px) {
   .signature-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .signature-cleanup-box {
+    padding: 12px;
+  }
+  .check-row,
+  .tolerance-row {
+    font-size: 12px;
   }
 }

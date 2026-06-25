@@ -57,8 +57,10 @@ const clearSig = document.getElementById("clearSig");
 const saveSignature = document.getElementById("saveSignature");
 const typedSignature = document.getElementById("typedSignature");
 const typedPreview = document.getElementById("typedPreview");
-const sigPngUpload = document.getElementById("sigPngUpload");
-const sigJpgUpload = document.getElementById("sigJpgUpload");
+const sigUploadPng = document.getElementById("sigUploadPng");
+const sigUploadJpg = document.getElementById("sigUploadJpg");
+const removeSignatureBg = document.getElementById("removeSignatureBg");
+const bgTolerance = document.getElementById("bgTolerance");
 
 pdfUpload.addEventListener("change", async (e) => {
   const file = e.target.files[0];
@@ -445,32 +447,17 @@ saveSignature.addEventListener("click", async () => {
     currentSignatureDataUrl = makeTypedSignatureImage(typedSignature.value || "Signature");
   }
 
-  if (activeTab === "png") {
-    const file = sigPngUpload.files[0];
+  if (activeTab === "uploadPng" || activeTab === "uploadJpg") {
+    const input = activeTab === "uploadPng" ? sigUploadPng : sigUploadJpg;
+    const file = input && input.files ? input.files[0] : null;
     if (!file) {
-      alert("Please upload a PNG signature first.");
+      alert(activeTab === "uploadPng" ? "Please upload PNG signature first." : "Please upload JPG signature first.");
       return;
     }
-    if (!file.type.includes("png")) {
-      alert("Please select a PNG file for the PNG option.");
-      return;
-    }
-    // PNG remains PNG. No canvas conversion, no re-export, no compression.
-    currentSignatureDataUrl = await fileToDataUrl(file);
-  }
 
-  if (activeTab === "jpg") {
-    const file = sigJpgUpload.files[0];
-    if (!file) {
-      alert("Please upload a JPG signature first.");
-      return;
-    }
-    if (!(file.type.includes("jpeg") || file.name.toLowerCase().endsWith(".jpg") || file.name.toLowerCase().endsWith(".jpeg"))) {
-      alert("Please select a JPG/JPEG file for the JPG option.");
-      return;
-    }
-    // JPG remains JPG. No canvas conversion, no re-export, no compression.
-    currentSignatureDataUrl = await fileToDataUrl(file);
+    const shouldRemoveBg = !!(removeSignatureBg && removeSignatureBg.checked);
+    const tolerance = bgTolerance ? Number(bgTolerance.value) : 45;
+    currentSignatureDataUrl = await signatureFileToDataUrl(file, shouldRemoveBg, tolerance);
   }
 
   signatureModal.classList.add("hidden");
@@ -492,10 +479,133 @@ function makeTypedSignatureImage(text) {
 }
 
 
-function signatureFileToDataUrl(file) {
-  // Legacy helper kept for compatibility. Uploaded signatures must keep original quality.
-  // PNG stays PNG and JPG stays JPG; no canvas cleanup, no re-export, no compression.
-  return fileToDataUrl(file);
+function signatureFileToDataUrl(file, removeBg = true, tolerance = 45) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      // Keep original PNG/JPG when background removal is OFF.
+      // This avoids any quality or color changes.
+      if (!removeBg) {
+        resolve(reader.result);
+        return;
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const srcCanvas = document.createElement("canvas");
+          srcCanvas.width = img.naturalWidth || img.width;
+          srcCanvas.height = img.naturalHeight || img.height;
+          const srcCtx = srcCanvas.getContext("2d", { willReadFrequently: true });
+          srcCtx.drawImage(img, 0, 0, srcCanvas.width, srcCanvas.height);
+
+          const imgData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
+          const data = imgData.data;
+          const w = srcCanvas.width;
+          const h = srcCanvas.height;
+
+          // Estimate the paper/background color from the four corners.
+          const sampleSize = Math.max(6, Math.round(Math.min(w, h) * 0.04));
+          let sr = 0, sg = 0, sb = 0, count = 0;
+          function sampleRect(x0, y0, ww, hh) {
+            for (let y = y0; y < y0 + hh; y++) {
+              for (let x = x0; x < x0 + ww; x++) {
+                const i = (y * w + x) * 4;
+                sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; count++;
+              }
+            }
+          }
+          sampleRect(0, 0, sampleSize, sampleSize);
+          sampleRect(w - sampleSize, 0, sampleSize, sampleSize);
+          sampleRect(0, h - sampleSize, sampleSize, sampleSize);
+          sampleRect(w - sampleSize, h - sampleSize, sampleSize, sampleSize);
+          const bg = { r: sr / count, g: sg / count, b: sb / count };
+
+          // Tolerance is user controlled. Higher removes more paper texture.
+          const tol = 18 + (Math.max(10, Math.min(90, tolerance)) * 1.25);
+          const inkBoost = 8;
+
+          function colorDistance(r, g, b, c) {
+            const dr = r - c.r, dg = g - c.g, db = b - c.b;
+            return Math.sqrt(dr * dr + dg * dg + db * db);
+          }
+
+          function isBackground(r, g, b, a) {
+            if (a < 20) return true;
+            const nearCornerPaper = colorDistance(r, g, b, bg) < tol;
+            const generallyLightPaper = r > 205 && g > 205 && b > 205 && Math.max(r, g, b) - Math.min(r, g, b) < 45;
+            return nearCornerPaper || generallyLightPaper;
+          }
+
+          function isInk(r, g, b, a) {
+            if (a < 20) return false;
+            if (isBackground(r, g, b, a)) return false;
+            // Keep blue, black, and dark strokes. This protects ink from removal.
+            const darkness = 255 - ((r + g + b) / 3);
+            const blueInk = b > r + inkBoost || b > g + inkBoost;
+            return darkness > 22 || blueInk;
+          }
+
+          let minX = w, minY = h, maxX = -1, maxY = -1;
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const i = (y * w + x) * 4;
+              if (isInk(data[i], data[i + 1], data[i + 2], data[i + 3])) {
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+              }
+            }
+          }
+
+          if (maxX < minX || maxY < minY) {
+            resolve(reader.result);
+            return;
+          }
+
+          const pad = Math.max(6, Math.round(Math.min(w, h) * 0.025));
+          minX = Math.max(0, minX - pad);
+          minY = Math.max(0, minY - pad);
+          maxX = Math.min(w - 1, maxX + pad);
+          maxY = Math.min(h - 1, maxY + pad);
+
+          const cropW = maxX - minX + 1;
+          const cropH = maxY - minY + 1;
+          const outCanvas = document.createElement("canvas");
+          outCanvas.width = cropW;
+          outCanvas.height = cropH;
+          const outCtx = outCanvas.getContext("2d", { willReadFrequently: true });
+          outCtx.drawImage(srcCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+          const outData = outCtx.getImageData(0, 0, cropW, cropH);
+          const od = outData.data;
+          for (let i = 0; i < od.length; i += 4) {
+            const r = od[i], g = od[i + 1], b = od[i + 2], a = od[i + 3];
+            if (isBackground(r, g, b, a)) {
+              // Fade paper pixels smoothly instead of creating rough edges.
+              const dist = colorDistance(r, g, b, bg);
+              const fadeStart = tol * 0.72;
+              const fadeEnd = tol * 1.25;
+              let alpha = (dist - fadeStart) / (fadeEnd - fadeStart);
+              alpha = Math.max(0, Math.min(1, alpha));
+              od[i + 3] = Math.round(a * alpha);
+            }
+          }
+          outCtx.putImageData(outData, 0, 0);
+          resolve(outCanvas.toDataURL("image/png"));
+        } catch (err) {
+          resolve(reader.result);
+        }
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function fileToDataUrl(file) {
