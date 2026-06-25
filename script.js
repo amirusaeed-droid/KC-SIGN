@@ -67,6 +67,11 @@ const sigCleanStrength = document.getElementById("sigCleanStrength");
 const sigQualityBadge = document.getElementById("sigQualityBadge");
 const sigOriginalPreview = document.getElementById("sigOriginalPreview");
 const sigEnhancedPreview = document.getElementById("sigEnhancedPreview");
+const fieldSizeToolbar = document.getElementById("fieldSizeToolbar");
+const fieldSizeSlider = document.getElementById("fieldSizeSlider");
+const fieldSizeValue = document.getElementById("fieldSizeValue");
+const btnFieldSmall = document.getElementById("btnFieldSmall");
+const btnFieldLarge = document.getElementById("btnFieldLarge");
 let latestOptimizedSignatureDataUrl = null;
 
 pdfUpload.addEventListener("change", async (e) => {
@@ -226,7 +231,9 @@ function makeFieldInteractive(field) {
 
   field.querySelector(".remove").addEventListener("click", (e) => {
     e.stopPropagation();
+    const wasSelected = field.classList.contains("selected");
     field.remove();
+    if (wasSelected) hideFieldSizeToolbar();
   });
 
   field.addEventListener("click", () => {
@@ -243,7 +250,73 @@ function getPoint(e) {
 function selectField(field) {
   document.querySelectorAll(".field").forEach(f => f.classList.remove("selected"));
   field.classList.add("selected");
+  updateFieldSizeToolbar(field);
 }
+
+function hideFieldSizeToolbar() {
+  if (fieldSizeToolbar) fieldSizeToolbar.classList.add("hidden");
+}
+
+function updateFieldSizeToolbar(field) {
+  if (!fieldSizeToolbar || !fieldSizeSlider || !fieldSizeValue) return;
+  if (!field || !field.classList.contains("field")) {
+    hideFieldSizeToolbar();
+    return;
+  }
+
+  // Show the size toolbar for signatures and seals/stamps. Text fields still use the corner handle.
+  if (field.dataset.type !== "signature" && field.dataset.type !== "stamp") {
+    hideFieldSizeToolbar();
+    return;
+  }
+
+  if (!field.dataset.baseWidth) field.dataset.baseWidth = field.offsetWidth || parseFloat(field.style.width) || 190;
+  if (!field.dataset.baseHeight) field.dataset.baseHeight = field.offsetHeight || parseFloat(field.style.height) || 70;
+
+  const baseW = Math.max(1, Number(field.dataset.baseWidth));
+  const percent = Math.round((field.offsetWidth / baseW) * 100);
+  const safePercent = Math.max(Number(fieldSizeSlider.min), Math.min(Number(fieldSizeSlider.max), percent));
+  fieldSizeSlider.value = safePercent;
+  fieldSizeValue.textContent = safePercent + "%";
+  fieldSizeToolbar.classList.remove("hidden");
+}
+
+function applySelectedFieldSize(percent) {
+  const field = document.querySelector(".field.selected");
+  if (!field || (field.dataset.type !== "signature" && field.dataset.type !== "stamp")) return;
+  if (!field.dataset.baseWidth) field.dataset.baseWidth = field.offsetWidth || 190;
+  if (!field.dataset.baseHeight) field.dataset.baseHeight = field.offsetHeight || 70;
+
+  const baseW = Number(field.dataset.baseWidth);
+  const baseH = Number(field.dataset.baseHeight);
+  const scale = Math.max(0.4, Math.min(2.6, Number(percent) / 100));
+  const newW = Math.max(50, baseW * scale);
+  const newH = Math.max(28, baseH * scale);
+  const page = field.parentElement;
+  const left = parseFloat(field.style.left || 0);
+  const top = parseFloat(field.style.top || 0);
+
+  field.style.width = Math.min(newW, Math.max(50, page.clientWidth - left)) + "px";
+  field.style.height = Math.min(newH, Math.max(28, page.clientHeight - top)) + "px";
+  updateFieldSizeToolbar(field);
+}
+
+if (fieldSizeSlider) {
+  fieldSizeSlider.addEventListener("input", () => applySelectedFieldSize(fieldSizeSlider.value));
+}
+if (btnFieldSmall) {
+  btnFieldSmall.addEventListener("click", () => applySelectedFieldSize(75));
+}
+if (btnFieldLarge) {
+  btnFieldLarge.addEventListener("click", () => applySelectedFieldSize(135));
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".field") && !e.target.closest("#fieldSizeToolbar")) {
+    document.querySelectorAll(".field").forEach(f => f.classList.remove("selected"));
+    hideFieldSizeToolbar();
+  }
+});
 
 function startDrag(e) {
   if (e.target.classList.contains("resize") || e.target.classList.contains("remove")) return;
@@ -360,8 +433,28 @@ function startResize(e) {
 
   function move(ev) {
     ev.preventDefault();
-    field.style.width = Math.max(70, startW + ev.clientX - startX) + "px";
-    field.style.height = Math.max(35, startH + ev.clientY - startY) + "px";
+    ev.stopPropagation();
+    const page = field.parentElement;
+    const left = parseFloat(field.style.left || 0);
+    const top = parseFloat(field.style.top || 0);
+    const maxW = Math.max(50, page.clientWidth - left);
+    const maxH = Math.max(28, page.clientHeight - top);
+
+    if (field.dataset.type === "signature" || field.dataset.type === "stamp") {
+      // Keep signature/seal proportions while resizing. This avoids stretched signatures.
+      const ratio = Math.max(0.1, startH / Math.max(1, startW));
+      const delta = Math.max(ev.clientX - startX, ev.clientY - startY);
+      let newW = Math.max(50, startW + delta);
+      let newH = newW * ratio;
+      if (newW > maxW) { newW = maxW; newH = newW * ratio; }
+      if (newH > maxH) { newH = maxH; newW = newH / ratio; }
+      field.style.width = newW + "px";
+      field.style.height = newH + "px";
+    } else {
+      field.style.width = Math.min(maxW, Math.max(70, startW + ev.clientX - startX)) + "px";
+      field.style.height = Math.min(maxH, Math.max(35, startH + ev.clientY - startY)) + "px";
+    }
+    updateFieldSizeToolbar(field);
   }
 
   function up() {
@@ -415,6 +508,8 @@ function createFieldElement(type, value, width = 190, height = 70) {
   field.style.top = "90px";
   field.style.width = width + "px";
   field.style.height = height + "px";
+  field.dataset.baseWidth = width;
+  field.dataset.baseHeight = height;
 
   if (type === "signature" || type === "stamp") {
     field.dataset.image = value;

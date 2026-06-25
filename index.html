@@ -123,6 +123,15 @@
         <button id="btnZoomIn" title="Zoom in">+</button>
         <button id="btnNextPage">Next ↓</button>
       </div>
+
+      <div class="field-size-toolbar hidden" id="fieldSizeToolbar">
+        <strong>Signature Size</strong>
+        <button type="button" id="btnFieldSmall">Small</button>
+        <input type="range" id="fieldSizeSlider" min="40" max="260" value="100" />
+        <button type="button" id="btnFieldLarge">Large</button>
+        <span id="fieldSizeValue">100%</span>
+      </div>
+
       <div id="viewer" class="viewer"></div>
     </section>
   </main>

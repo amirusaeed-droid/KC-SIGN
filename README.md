@@ -47,3 +47,9 @@ For clean signatures:
 - PDF page re-rendering is paused during drag/resize and resumed safely after release.
 - Signature/text/seal positions are saved by page ratio and restored correctly after zoom or resize.
 - Added safer Pointer Events handling for mobile, tablet, stylus and desktop.
+
+## V9 Signature Resize Update
+- Added a mobile-friendly Signature Size toolbar with slider and Small/Large buttons.
+- Enlarged the resize handle for touch devices.
+- Signature and seal resizing now keeps proportions to avoid stretched signatures.
+- Selected signature can be resized without relying only on the tiny corner handle.

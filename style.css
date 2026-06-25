@@ -2041,3 +2041,116 @@ body.dark #sigCanvas {
 body.dark #typedPreview {
   color: #f8fafc !important;
 }
+
+/* V9: mobile-friendly signature resizing */
+.field-size-toolbar {
+  width: min(720px, 100%);
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 18px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(203,213,225,.9);
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
+  backdrop-filter: blur(18px);
+  z-index: 35;
+}
+
+.field-size-toolbar strong {
+  color: var(--navy);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.field-size-toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: linear-gradient(135deg, #4778ff, #00b8d9);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.field-size-toolbar input[type="range"] {
+  width: 100%;
+  accent-color: #4778ff;
+}
+
+.field-size-toolbar span {
+  font-weight: 900;
+  color: var(--navy);
+  min-width: 48px;
+  text-align: right;
+}
+
+/* Bigger resize handle so fingers can grab it easily */
+.resize {
+  right: -14px !important;
+  bottom: -14px !important;
+  width: 30px !important;
+  height: 30px !important;
+  border: 3px solid #fff;
+  box-shadow: 0 8px 18px rgba(0,0,0,.22);
+}
+
+.field.selected .resize::after {
+  content: "↘";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+body.dark .field-size-toolbar {
+  background: rgba(15,23,42,.96);
+  border-color: rgba(148,163,184,.35);
+}
+
+body.dark .field-size-toolbar strong,
+body.dark .field-size-toolbar span {
+  color: #f8fafc;
+}
+
+@media (max-width: 720px) {
+  .field-size-toolbar {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .field-size-toolbar strong {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .field-size-toolbar input[type="range"] {
+    grid-column: 1 / -1;
+    min-height: 34px;
+  }
+
+  .field-size-toolbar span {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+
+  .field-size-toolbar button {
+    min-height: 38px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  .resize {
+    right: -18px !important;
+    bottom: -18px !important;
+    width: 38px !important;
+    height: 38px !important;
+  }
+}
