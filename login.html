@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Stock Login</title>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+
+  <div class="login-card">
+
+    <img src="assets/logo/logo.png"
+         alt="Kondey Council Logo"
+         class="login-logo" />
+
+    <h1>E-Stock</h1>
+    <p>Advanced Inventory & Stock Management System</p>
+
+    <label>Username</label>
+    <input id="username"
+           type="text"
+           placeholder="Enter username" />
+
+    <label>Password</label>
+    <input id="password"
+           type="password"
+           placeholder="Enter password" />
+
+    <button class="btn full" onclick="login()">
+      Login
+    </button>
+
+    <small>Secretariat of Kondey Council</small>
+
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
